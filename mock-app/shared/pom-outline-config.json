@@ -1,0 +1,32 @@
+{
+  "$comment": "tierColors + dataPomToTier: page | componentOuter | componentInner. POM inspector: route <main data-pom-composition=\"…\"> lists composed widgets under PAGE only; same names are not duplicated under Widgets (green).",
+  "tierColors": {
+    "page": {
+      "outline": "#6d28d9",
+      "labelBackground": "#4c1d95",
+      "labelText": "#f5f3ff"
+    },
+    "componentOuter": {
+      "outline": "#1d4ed8",
+      "labelBackground": "#1e3a8a",
+      "labelText": "#eff6ff"
+    },
+    "componentInner": {
+      "outline": "#047857",
+      "labelBackground": "#064e3b",
+      "labelText": "#ecfdf5"
+    }
+  },
+  "dataPomToTier": {
+    "MastheadComponent": "componentOuter",
+    "NavigationDrawerComponent": "componentOuter",
+    "TableComponent": "componentInner",
+    "SearchBoxComponent": "componentInner",
+    "ModalComponent": "componentInner",
+    "HomePage": "page",
+    "RecordsPage": "page",
+    "RecordDetailsPage": "page",
+    "CreateToolPage": "page",
+    "ViewToolsPage": "page"
+  }
+}
