@@ -18,7 +18,7 @@ export class MastheadComponent {
   async expectVisible() {
     await expectPomMarkerVisible(this.page, this.marker);
     await expect(this.page.getByRole("banner")).toBeVisible();
-    await expect(this.page.getByRole("banner").getByText("MOCK SHELL")).toBeVisible();
+    await expect(this.page.getByRole("banner").getByText("CONTROL CENTER")).toBeVisible();
   }
 
   async chooseWorkspace(mode: "ADMIN" | "USER") {
