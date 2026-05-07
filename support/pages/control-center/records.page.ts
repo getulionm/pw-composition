@@ -1,7 +1,7 @@
 import { expect, Page } from "@playwright/test";
 import { BasePage } from "../shared/base.page";
-import { TableComponent } from "../shared/components/table.component";
-import { SearchBoxComponent } from "../shared/components/search-box.component";
+import { SearchBoxComponent } from "../shared/components/inner/search-box.component";
+import { TableComponent } from "../shared/components/inner/table.component";
 
 export class RecordsPage extends BasePage {
   constructor(page: Page) {

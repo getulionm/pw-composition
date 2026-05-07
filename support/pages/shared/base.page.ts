@@ -1,4 +1,5 @@
 import { expect, Page } from "@playwright/test";
+import { expectPomMarkerVisible, pagePomMarker } from "./pom-marker";
 
 function normalizePathname(pathname: string): string {
   const trimmed = pathname.replace(/\/+$/, "");
@@ -35,6 +36,10 @@ export class BasePage {
     readonly screen: PageScreenMeta
   ) {}
 
+  get marker(): string {
+    return pagePomMarker(this.screen.screenId);
+  }
+
   /** Live browser URL (after redirects). */
   get currentUrl(): string {
     return this.page.url();
@@ -69,6 +74,7 @@ export class BasePage {
 
   /** Optional one-liner after `goto()` + heading: URL + title when configured. */
   async expectScreen(): Promise<void> {
+    await expectPomMarkerVisible(this.page, this.marker);
     await this.expectUrl();
     await this.expectDocumentTitle();
   }

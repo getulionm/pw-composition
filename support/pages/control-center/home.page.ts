@@ -1,8 +1,8 @@
 import { expect, Page } from "@playwright/test";
 import { BasePage } from "../shared/base.page";
-import { MastheadComponent } from "../shared/components/masthead.component";
-import { ModalComponent } from "../shared/components/modal.component";
-import { NavigationDrawerComponent } from "../shared/components/navigation-drawer.component";
+import { ModalComponent } from "../shared/components/inner/modal.component";
+import { MastheadComponent } from "../shared/components/shared/masthead.component";
+import { NavigationDrawerComponent } from "../shared/components/shared/navigation-drawer.component";
 
 export class HomePage extends BasePage {
   constructor(page: Page) {

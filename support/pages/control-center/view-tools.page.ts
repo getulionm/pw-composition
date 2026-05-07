@@ -1,6 +1,6 @@
 import { Page } from "@playwright/test";
 import { BasePage } from "../shared/base.page";
-import { TableComponent } from "../shared/components/table.component";
+import { TableComponent } from "../shared/components/inner/table.component";
 
 export class ViewToolsPage extends BasePage {
   constructor(page: Page) {
