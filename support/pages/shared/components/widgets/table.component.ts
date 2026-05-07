@@ -1,39 +1,30 @@
 import { expect, Locator, Page } from "@playwright/test";
+import { componentPomMarker, expectPomMarkerVisible } from "../../pom-marker";
 
 type CellLookup = {
   row: string;
   column: string;
 };
 
-/**
- * Generic HTML table helper (rows, column headers, row actions, cells).
- *
- * This is the biggest reuse point for list/table surfaces.
- *
- * It should know table mechanics:
- * - find rows
- * - read columns
- * - click row actions
- * - assert cell values
- *
- * It should NOT know domain language.
- */
 export class TableComponent {
+  readonly marker = componentPomMarker("widgets", "table");
+
   constructor(
     private readonly page: Page,
-    private readonly root: Locator = page.getByRole("table")
+    private readonly tableRoot: Locator = page.getByRole("table")
   ) {}
 
   rowByText(rowText: string) {
-    return this.root.getByRole("row").filter({ hasText: rowText });
+    return this.tableRoot.getByRole("row").filter({ hasText: rowText });
   }
 
   columnHeader(columnName: string) {
-    return this.root.getByRole("columnheader", { name: columnName });
+    return this.tableRoot.getByRole("columnheader", { name: columnName });
   }
 
   async expectVisible() {
-    await expect(this.root).toBeVisible();
+    await expectPomMarkerVisible(this.page, this.marker);
+    await expect(this.tableRoot).toBeVisible();
   }
 
   async expectColumnVisible(columnName: string) {
@@ -50,7 +41,6 @@ export class TableComponent {
 
   async expectRowContains(rowText: string, expectedValues: string[]) {
     const row = this.rowByText(rowText);
-
     for (const value of expectedValues) {
       await expect(row).toContainText(value);
     }
@@ -60,10 +50,6 @@ export class TableComponent {
     await this.rowByText(rowText).getByRole("link", { name: actionName }).click();
   }
 
-  /**
-   * Prefer accessible roles when the table supports them.
-   * Otherwise add stable data-testid attributes to cells, e.g. `data-testid="table-cell-status"`.
-   */
   async getCellText({ row, column }: CellLookup): Promise<string> {
     const targetRow = this.rowByText(row);
     const cell = targetRow.getByTestId(`table-cell-${normalise(column)}`);

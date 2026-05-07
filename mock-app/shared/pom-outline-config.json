@@ -1,5 +1,5 @@
 {
-  "$comment": "tierColors + dataPomToTier: page | componentOuter | componentInner. POM inspector: route <main data-pom-composition=\"…\"> lists composed widgets under PAGE only; same names are not duplicated under Widgets (green).",
+  "$comment": "tierColors + dataPomToTier: page | componentOuter | componentInner. Markers: pages/*, components/shell/*, components/widgets/*. POM inspector: route <main data-pom-composition=\"…\"> lists composed widgets under PAGE only.",
   "tierColors": {
     "page": {
       "outline": "#6d28d9",
@@ -18,15 +18,15 @@
     }
   },
   "dataPomToTier": {
-    "MastheadComponent": "componentOuter",
-    "NavigationDrawerComponent": "componentOuter",
-    "TableComponent": "componentInner",
-    "SearchBoxComponent": "componentInner",
-    "ModalComponent": "componentInner",
-    "HomePage": "page",
-    "RecordsPage": "page",
-    "RecordDetailsPage": "page",
-    "CreateToolPage": "page",
-    "ViewToolsPage": "page"
+    "components/shell/masthead": "componentOuter",
+    "components/shell/navigationDrawer": "componentOuter",
+    "components/widgets/table": "componentInner",
+    "components/widgets/searchBox": "componentInner",
+    "components/widgets/modal": "componentInner",
+    "pages/controlCenter.home": "page",
+    "pages/controlCenter.records": "page",
+    "pages/controlCenter.recordDetails": "page",
+    "pages/controlCenter.createTool": "page",
+    "pages/controlCenter.viewTools": "page"
   }
 }

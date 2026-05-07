@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="/shared/mock-shell.css" />
   </head>
   <body>
-    <header class="shell-header" role="banner" data-pom="MastheadComponent">
+    <header class="shell-header" role="banner" data-pom="components/shell/masthead">
       <div class="shell-brand">
         <img src="/shared/mock-logo.svg" width="32" height="32" alt="" />
         <span class="shell-title">MOCK SHELL</span>
@@ -28,7 +28,7 @@
       </div>
     </header>
     <div class="layout" id="app-layout">
-      <nav id="side-nav" class="side-nav" aria-label="Main" data-pom="NavigationDrawerComponent">
+      <nav id="side-nav" class="side-nav" aria-label="Main" data-pom="components/shell/navigationDrawer">
         <p><a href="/control-center/">Home</a></p>
         <p><a href="/control-center/records/">Records</a></p>
         <p>
@@ -49,7 +49,7 @@
         <span class="rail-label">Collapse menu</span>
       </button>
       <div class="main-wrap">
-        <main data-pom="RecordDetailsPage">
+        <main data-pom="pages/controlCenter.recordDetails">
           <h1 id="record-detail-title">Example Record 1</h1>
           <p>Status: <span>Ready</span></p>
         </main>

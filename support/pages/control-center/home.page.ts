@@ -1,20 +1,31 @@
 import { expect, Page } from "@playwright/test";
 import { BasePage } from "../shared/base.page";
-import { MastheadComponent } from "../shared/components/masthead.component";
-import { ModalComponent } from "../shared/components/modal.component";
-import { NavigationDrawerComponent } from "../shared/components/navigation-drawer.component";
+import { ModalComponent } from "../shared/components/widgets/modal.component";
+import { MastheadComponent } from "../shared/components/shell/masthead.component";
+import { NavigationDrawerComponent } from "../shared/components/shell/navigation-drawer.component";
 
 export class HomePage extends BasePage {
+  readonly masthead: MastheadComponent;
+  readonly nav: NavigationDrawerComponent;
+  readonly modal: ModalComponent;
+
   constructor(page: Page) {
     super(page, {
       screenId: "controlCenter.home",
       pathname: "/control-center",
       documentTitle: "Home",
     });
+    this.masthead = new MastheadComponent(page);
+    this.nav = new NavigationDrawerComponent(page);
+    this.modal = new ModalComponent(page);
+  }
+
+  private async expectHeading(name: string) {
+    await expect(this.page.getByRole("heading", { name })).toBeVisible();
   }
 
   async goto() {
-    await this.gotoPath("./");
+    await this.gotoPath(this.screen.pathname);
     await this.expectScreen();
     const ws = ((await this.page.locator("body").getAttribute("data-workspace")) ?? "ADMIN") as "ADMIN" | "USER";
     await this.expectWelcomeWorkspace(ws);
@@ -29,7 +40,7 @@ export class HomePage extends BasePage {
   }
 
   async chooseWorkspace(workspace: "ADMIN" | "USER") {
-    await new MastheadComponent(this.page).chooseWorkspace(workspace);
+    await this.masthead.chooseWorkspace(workspace);
   }
 
   async openHomeExpectingWorkspace(workspace: "ADMIN" | "USER") {
@@ -39,26 +50,35 @@ export class HomePage extends BasePage {
   }
 
   async openRecords() {
-    await new NavigationDrawerComponent(this.page).openLink("Records");
+    await this.nav.openLink("Records");
   }
 
   async openViewToolsFromMenu() {
-    await new NavigationDrawerComponent(this.page).openViewToolsFromMenu();
+    await this.nav.openViewToolsFromMenu();
   }
 
   async openCreateToolFromMenu() {
-    await new NavigationDrawerComponent(this.page).openCreateToolFromMenu();
+    await this.nav.openCreateToolFromMenu();
+  }
+
+  async expectCreateToolNavLocked() {
+    await this.nav.ensureToolsMenuOpen();
+    await this.nav.expectCreateToolNavLocked();
+  }
+
+  async expectCreateToolNavUnlocked() {
+    await this.nav.ensureToolsMenuOpen();
+    await this.nav.expectCreateToolNavUnlocked();
   }
 
   async openWelcomeModalExpectLoaded(workspace: "ADMIN" | "USER") {
     await this.goto();
     await this.chooseWorkspace(workspace);
-    const modal = new ModalComponent(this.page);
     const dialogName = "Welcome modal";
-    await modal.openViaButton("Open welcome modal");
-    await modal.expectDialogVisible(dialogName);
+    await this.modal.openViaButton("Open welcome modal");
+    await this.modal.expectDialogVisible(dialogName);
     await expect(
-      modal.dialog(dialogName).getByRole("heading", { level: 2, name: `Welcome ${workspace}` })
+      this.modal.dialog(dialogName).getByRole("heading", { level: 2, name: `Welcome ${workspace}` })
     ).toBeVisible();
   }
 }
