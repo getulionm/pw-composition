@@ -40,6 +40,11 @@ test.describe("Admin capabilities", () => {
   });
 
   test.describe("Tools", () => {
+    test("sees Create tool in nav unlocked", async ({ navigationDrawer }) => {
+      await navigationDrawer.ensureToolsMenuOpen();
+      await navigationDrawer.expectCreateToolNavUnlocked();
+    });
+
     test("can create tools", async ({ controlCenter }) => {
       await controlCenter.createTool.goto();
       await controlCenter.createTool.createItem();

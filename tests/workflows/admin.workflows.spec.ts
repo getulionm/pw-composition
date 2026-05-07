@@ -16,4 +16,14 @@ test.describe("Admin workflows", () => {
     // Use a workflow: spans more than one route (records list → details).
     await recordWorkflow.openExistingRecord("Example Record 1");
   });
+
+  test("ADMIN creates record through workflow", async ({ recordWorkflow }) => {
+    await recordWorkflow.createRecord();
+  });
+
+  test("ADMIN navigates to View tools through home facade method", async ({ controlCenter }) => {
+    await controlCenter.home.openHomeExpectingWorkspace("ADMIN");
+    await controlCenter.home.openViewToolsFromMenu();
+    await controlCenter.viewTools.expectScreen();
+  });
 });

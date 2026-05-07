@@ -16,7 +16,7 @@ import { RecordWorkflow } from "../pages/shared/workflows/record.workflow";
  * - **`controlCenter`**, **`masthead`**, **`navigationDrawer`** — shape `PagesAndShellFixtures` (routes + shell chrome on one tab).
  * - **`*Workflow`** — multi-step helpers that only receive pages (`WorkflowFixtures`).
  *
- * Which fixture to use in a test: README → **Usage (fixtures)**.
+ * Which fixture to use in a test: README → **Usage (fixtures)**. How to add fixtures: README → **Composition** → **Building fixtures**.
  */
 export type ControlCenterPages = {
   home: HomePage;
