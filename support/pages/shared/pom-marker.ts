@@ -1,13 +1,13 @@
 import { expect, Locator, Page } from "@playwright/test";
 
-export type PomComponentType = "shared" | "inner";
+export type PomComponentType = "shell" | "widgets";
 
 export function pagePomMarker(screenId: string): string {
-  return `page:${screenId}`;
+  return `pages/${screenId}`;
 }
 
 export function componentPomMarker(type: PomComponentType, name: string): string {
-  return `component:${type}:${name}`;
+  return `components/${type}/${name}`;
 }
 
 export function locatorByPom(page: Page, marker: string): Locator {

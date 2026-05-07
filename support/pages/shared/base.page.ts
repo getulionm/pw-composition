@@ -25,10 +25,8 @@ export type PageScreenMeta = {
 };
 
 /**
- * Thin base only — see README (Composition).
- *
- * Every full-route page passes **`screen`** into `super()` so callers can read
- * `screenId`, assert URL/title, or log `currentUrl` without duplicating strings across methods.
+ * Tiny convenience only: screen meta, marker, URL/title/marker assertion, navigation.
+ * Pages compose shell/widgets in constructors; see README.
  */
 export class BasePage {
   constructor(
@@ -40,17 +38,8 @@ export class BasePage {
     return pagePomMarker(this.screen.screenId);
   }
 
-  /** Live browser URL (after redirects). */
-  get currentUrl(): string {
-    return this.page.url();
-  }
-
   async gotoPath(path: string) {
     await this.page.goto(path);
-  }
-
-  async expectHeading(name: string) {
-    await expect(this.page.getByRole("heading", { name })).toBeVisible();
   }
 
   /** Pathname matches this page’s declared `pathname`. */
@@ -72,7 +61,7 @@ export class BasePage {
     await expect(this.page).toHaveTitle(t);
   }
 
-  /** Optional one-liner after `goto()` + heading: URL + title when configured. */
+  /** After navigation: marker + URL + title when configured. */
   async expectScreen(): Promise<void> {
     await expectPomMarkerVisible(this.page, this.marker);
     await this.expectUrl();

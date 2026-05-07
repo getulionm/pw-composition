@@ -1,9 +1,9 @@
 import { expect, Page } from "@playwright/test";
+import { componentPomMarker, expectPomMarkerVisible } from "../../pom-marker";
 
-/**
- * Generic `role="dialog"` helper: locate by accessible name, open via a trigger button, close via an action in the dialog.
- */
 export class ModalComponent {
+  readonly marker = componentPomMarker("widgets", "modal");
+
   constructor(private readonly page: Page) {}
 
   dialog(accessibleName: string) {
@@ -15,6 +15,7 @@ export class ModalComponent {
   }
 
   async expectDialogVisible(accessibleName: string) {
+    await expectPomMarkerVisible(this.page, this.marker);
     await expect(this.dialog(accessibleName)).toBeVisible();
   }
 

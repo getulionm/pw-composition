@@ -167,16 +167,16 @@
       componentInner: { outline: "#047857", labelBackground: "#064e3b", labelText: "#ecfdf5" }
     },
     dataPomToTier: {
-      MastheadComponent: "componentOuter",
-      NavigationDrawerComponent: "componentOuter",
-      TableComponent: "componentInner",
-      SearchBoxComponent: "componentInner",
-      ModalComponent: "componentInner",
-      HomePage: "page",
-      RecordsPage: "page",
-      RecordDetailsPage: "page",
-      CreateToolPage: "page",
-      ViewToolsPage: "page"
+      "components/shell/masthead": "componentOuter",
+      "components/shell/navigationDrawer": "componentOuter",
+      "components/widgets/table": "componentInner",
+      "components/widgets/searchBox": "componentInner",
+      "components/widgets/modal": "componentInner",
+      "pages/controlCenter.home": "page",
+      "pages/controlCenter.records": "page",
+      "pages/controlCenter.recordDetails": "page",
+      "pages/controlCenter.createTool": "page",
+      "pages/controlCenter.viewTools": "page"
     }
   };
 
@@ -204,8 +204,9 @@
 
   function inferPomTier(name, map) {
     if (map[name]) return map[name];
-    if (/Page$/.test(name)) return "page";
-    if (/^(Masthead|NavigationDrawer)/.test(name)) return "componentOuter";
+    if (name.startsWith("pages/")) return "page";
+    if (name.startsWith("components/shell/")) return "componentOuter";
+    if (name.startsWith("components/widgets/")) return "componentInner";
     return "componentInner";
   }
 
@@ -291,11 +292,11 @@
 
   /**
    * `data-pom-composition` on route `<main>` drives the PAGE section in the POM inspector (green dashed outlines unchanged).
-   * Inner `data-pom` names listed there are omitted from "Widgets (green)" so that list is overlays / non-composed widgets only (e.g. ModalComponent).
+   * Inner `data-pom` markers listed there are omitted from "Widgets (green)" so overlays/non-composed widgets still stand out.
    */
   var COMPOSITION_ROW_META = {
-    searchBox: { display: "SearchBoxComponent", tag: "WIDGET", variant: "widget" },
-    table: { display: "TableComponent", tag: "WIDGET", variant: "widget" },
+    "components/widgets/searchBox": { display: "searchBox", tag: "WIDGET", variant: "widget" },
+    "components/widgets/table": { display: "table", tag: "WIDGET", variant: "widget" },
   };
 
   function metaForCompositionField(field) {

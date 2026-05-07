@@ -1,13 +1,13 @@
 import { expect, Page } from "@playwright/test";
+import { componentPomMarker, expectPomMarkerVisible } from "../../pom-marker";
 
 /**
- * Shell masthead: brand, **ADMIN** / **USER** workspace control, account menu + dropdown.
- * Menu button reads **Admin menu** or **User menu** with the workspace selection.
+ * Shell masthead: brand, workspace switcher, and account menu.
  */
 export class MastheadComponent {
-  constructor(private readonly page: Page) {}
+  readonly marker = componentPomMarker("shell", "masthead");
 
-  readonly root = this.page.getByRole("banner");
+  constructor(private readonly page: Page) {}
 
   accountMenuButton() {
     return this.page
@@ -16,12 +16,21 @@ export class MastheadComponent {
   }
 
   async expectVisible() {
-    await expect(this.root).toBeVisible();
-    await expect(this.root.getByText("MOCK SHELL")).toBeVisible();
+    await expectPomMarkerVisible(this.page, this.marker);
+    await expect(this.page.getByRole("banner")).toBeVisible();
+    await expect(this.page.getByRole("banner").getByText("MOCK SHELL")).toBeVisible();
   }
 
   async chooseWorkspace(mode: "ADMIN" | "USER") {
     await this.page.getByLabel("Workspace").selectOption(mode);
+  }
+
+  async switchToUser() {
+    await this.chooseWorkspace("USER");
+  }
+
+  async switchToAdmin() {
+    await this.chooseWorkspace("ADMIN");
   }
 
   async expectWorkspace(mode: "ADMIN" | "USER") {

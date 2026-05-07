@@ -1,46 +1,36 @@
 import { test as base, expect } from "@playwright/test";
 import { registerPomVisualOnPage } from "../helpers/pom-visual";
-import { CreateToolPage } from "../pages/control-center/create-tool.page";
-import { HomePage } from "../pages/control-center/home.page";
-import { RecordDetailsPage } from "../pages/control-center/record-details.page";
-import { RecordsPage } from "../pages/control-center/records.page";
-import { ViewToolsPage } from "../pages/control-center/view-tools.page";
-import { MastheadComponent } from "../pages/shared/components/masthead.component";
-import { NavigationDrawerComponent } from "../pages/shared/components/navigation-drawer.component";
+import { MastheadComponent } from "../pages/shared/components/shell/masthead.component";
+import { NavigationDrawerComponent } from "../pages/shared/components/shell/navigation-drawer.component";
 import { AdminHomeWorkflow, UserHomeWorkflow } from "../pages/shared/workflows/home.workflow";
 import { RecordWorkflow } from "../pages/shared/workflows/record.workflow";
+import { CreateToolWorkflow } from "../pages/shared/workflows/create-tool.workflow";
+import { ViewToolsWorkflow } from "../pages/shared/workflows/view-tools.workflow";
+import { WorkspaceWorkflow } from "../pages/shared/workflows/workspace.workflow";
 
 /**
  * Playwright fixtures for the control-center teaching mock: one browser tab, shared `page`.
  *
- * - **`controlCenter`**, **`masthead`**, **`navigationDrawer`** — shape `PagesAndShellFixtures` (routes + shell chrome on one tab).
- * - **`*Workflow`** — multi-step helpers that only receive pages (`WorkflowFixtures`).
+ * - **`masthead`**, **`navigationDrawer`** — shell chrome on the same tab.
+ * - **`*Workflow`** — user journeys; each workflow is constructed with `page` only (no `controlCenter` bundle).
  *
- * Which fixture to use in a test: README → **Usage (fixtures)**. How to add fixtures: README → **Composition** → **Building fixtures**.
+ * Which fixture to use in a test: README → **Usage (fixtures)**.
  */
-export type ControlCenterPages = {
-  home: HomePage;
-  records: RecordsPage;
-  recordDetails: RecordDetailsPage;
-  viewTools: ViewToolsPage;
-  createTool: CreateToolPage;
-};
-
-/** Route `*Page` bundle plus shell layout entry points (`masthead`, `navigationDrawer`) on the same tab. */
-export type PagesAndShellFixtures = {
-  controlCenter: ControlCenterPages;
+export type ShellFixtures = {
   masthead: MastheadComponent;
   navigationDrawer: NavigationDrawerComponent;
 };
 
-/** Named journeys; each workflow is built from `controlCenter` pages only (no component imports). */
 export type WorkflowFixtures = {
   userHomeWorkflow: UserHomeWorkflow;
   adminHomeWorkflow: AdminHomeWorkflow;
   recordWorkflow: RecordWorkflow;
+  createToolWorkflow: CreateToolWorkflow;
+  viewToolsWorkflow: ViewToolsWorkflow;
+  workspaceWorkflow: WorkspaceWorkflow;
 };
 
-type AppFixtures = PagesAndShellFixtures & WorkflowFixtures;
+type AppFixtures = ShellFixtures & WorkflowFixtures;
 
 const test = base.extend<AppFixtures>({
   /** Optional POM outline helper for local debugging (`POM_VISUAL=1`). */
@@ -59,26 +49,28 @@ const test = base.extend<AppFixtures>({
     await use(new NavigationDrawerComponent(page));
   },
 
-  controlCenter: async ({ page }, use) => {
-    await use({
-      home: new HomePage(page),
-      records: new RecordsPage(page),
-      recordDetails: new RecordDetailsPage(page),
-      viewTools: new ViewToolsPage(page),
-      createTool: new CreateToolPage(page),
-    });
+  userHomeWorkflow: async ({ page }, use) => {
+    await use(new UserHomeWorkflow(page));
   },
 
-  userHomeWorkflow: async ({ controlCenter }, use) => {
-    await use(new UserHomeWorkflow(controlCenter.home));
+  adminHomeWorkflow: async ({ page }, use) => {
+    await use(new AdminHomeWorkflow(page));
   },
 
-  adminHomeWorkflow: async ({ controlCenter }, use) => {
-    await use(new AdminHomeWorkflow(controlCenter.home));
+  recordWorkflow: async ({ page }, use) => {
+    await use(new RecordWorkflow(page));
   },
 
-  recordWorkflow: async ({ controlCenter }, use) => {
-    await use(new RecordWorkflow(controlCenter.records, controlCenter.recordDetails));
+  createToolWorkflow: async ({ page }, use) => {
+    await use(new CreateToolWorkflow(page));
+  },
+
+  viewToolsWorkflow: async ({ page }, use) => {
+    await use(new ViewToolsWorkflow(page));
+  },
+
+  workspaceWorkflow: async ({ page }, use) => {
+    await use(new WorkspaceWorkflow(page));
   },
 });
 

@@ -1,14 +1,13 @@
 import { expect, Page } from "@playwright/test";
-import { BaseComponent } from "../../base.component";
-import { componentPomMarker } from "../../pom-marker";
+import { componentPomMarker, expectPomMarkerVisible } from "../../pom-marker";
 
 /**
  * Left navigation drawer: Home, Records, and Tools flyout links.
  */
-export class NavigationDrawerComponent extends BaseComponent {
-  constructor(page: Page) {
-    super(page, componentPomMarker("shared", "navigationDrawer"));
-  }
+export class NavigationDrawerComponent {
+  readonly marker = componentPomMarker("shell", "navigationDrawer");
+
+  constructor(private readonly page: Page) {}
 
   toolsMenuButton() {
     return this.page.getByRole("button", { name: "Tools menu" });
@@ -51,7 +50,7 @@ export class NavigationDrawerComponent extends BaseComponent {
   }
 
   async expectCreateToolNavLocked() {
-    await this.expectMarkerVisible();
+    await expectPomMarkerVisible(this.page, this.marker);
     const link = this.createToolNavLink();
     await expect(link).toHaveAttribute("aria-disabled", "true");
     await expect(link).toHaveAttribute("class", expect.stringContaining("nav-link-locked"));
@@ -59,7 +58,7 @@ export class NavigationDrawerComponent extends BaseComponent {
   }
 
   async expectCreateToolNavUnlocked() {
-    await this.expectMarkerVisible();
+    await expectPomMarkerVisible(this.page, this.marker);
     await expect(this.createToolNavLink()).not.toHaveAttribute("aria-disabled", "true");
   }
 }

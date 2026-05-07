@@ -4,8 +4,8 @@ export type WorkflowMetadata = {
   targetPathnames: string[];
   pages: string[];
   components: {
-    shared: string[];
-    inner: string[];
+    shell: string[];
+    widgets: string[];
   };
 };
 
