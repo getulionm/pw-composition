@@ -1,122 +1,270 @@
-# Playwright Framework Example
+# Playwright Composition Framework Example
 
-Static `mock-app/` + Playwright teaching repo for composition-first E2E testing.
+This repo is a small Playwright architecture example.
 
-## Quick start
+The point is not to show another generic test framework.
 
-1. `npm install`
-2. `npm test`
+The point is to show a simple default I prefer for modular UI automation:
 
-Useful variants:
+> Tests should describe user workflows. Pages and components should support those workflows. Framework structure should not become the thing the test is about.
 
-- `npm run test:ui`
-- `npm run test:headed`
-- `npm run start:mock`
-- `npm run start:mock:outlined`
+## The idea
 
-`playwright.config.ts` auto-starts `mock-app` on `http://127.0.0.1:4173/control-center/` during test runs.
+A lot of Playwright projects start clean and slowly become hard to reason about.
 
-## Architecture north star
+The problem is usually not Playwright. The problem is the shape of the abstraction.
 
-- Tests stay declarative and business-readable.
-- **Specs are workflow-first**: use `*Workflow` fixtures for user journeys; use `masthead` / `navigationDrawer` only for shell-only checks.
-- Dependency direction is strict: `workflow -> page -> component`.
-- POM/selector complexity stays in support-side code, not specs.
-- **Composition over inheritance**: each **Page** is a screen; it **contains** shell and widget parts assigned in the constructor (for example `this.nav = new NavigationDrawerComponent(page)`), not a fake “is-a” hierarchy.
+When the framework is built mostly around inheritance or large technical wrapper objects, the test writer often has to think about framework structure before thinking about user behaviour.
 
-## Layer definitions
+This repo takes a different default:
 
-- **Shell components** (`support/pages/shared/components/shell/`): cross-route chrome (`MastheadComponent`, `NavigationDrawerComponent`).
-- **Widget components** (`support/pages/shared/components/widgets/`): route-local reusable UI (`SearchBoxComponent`, `TableComponent`, `ModalComponent`).
-- **Page** (`support/pages/control-center/`): one route/screen; composes shell/widgets in the constructor; exposes user-facing verbs and screen `expect*` helpers.
-- **Workflow** (`support/pages/shared/workflows/`): a user journey; composes pages in the constructor; calls only page APIs; declares static `meta` for test writers.
-- **BasePage** (`support/pages/shared/base.page.ts`): tiny convenience only — `screen` meta, `marker`, `gotoPath`, `expectUrl`, `expectDocumentTitle`, `expectScreen` (marker + URL + title).
+```txt
+spec
+  -> workflow fixture
+    -> page
+      -> component
+```
 
-## Selector and marker contract
+The spec uses a workflow fixture.
+The workflow uses pages.
+The page composes components.
+The component owns the lower-level UI details.
 
-Selector priority in support-side POM code:
+That keeps the test close to the user journey while still giving the framework a clear structure underneath.
 
-1. `getByRole`
-2. `getByLabel`
-3. `getByText`
-4. `data-pom`
-5. `data-testid` (last resort)
+## Why workflow fixtures?
 
-DOM marker contract:
+The most important object in this repo is not a base page.
+It is the workflow fixture.
 
-- Page roots: `data-pom="pages/<screenId>"`
-- Shell component roots: `data-pom="components/shell/<componentName>"`
-- Widget component roots: `data-pom="components/widgets/<componentName>"`
+A workflow fixture gives the test a user journey directly:
+
+```ts
+test("admin can create a tool and see it in the tools list", async ({
+  createToolWorkflow,
+  viewToolsWorkflow,
+}) => {
+  const toolName = await createToolWorkflow.createTool();
+
+  await viewToolsWorkflow.open();
+  await viewToolsWorkflow.expectToolListed(toolName);
+});
+```
+
+The test does not need to know which menu, table, modal, route, or selector is involved.
+
+Those details still exist, but they live in the right layer.
+
+## Preferred model
+
+### Workflow
+
+A workflow represents a user journey.
 
 Examples:
 
-- `pages/controlCenter.records`
-- `components/shell/navigationDrawer`
-- `components/widgets/searchBox`
+- open a workspace
+- create a tool
+- view tools
+- open records
+- inspect a record
 
-## Where do assertions live?
+A workflow can compose one or more pages, but it should call page APIs rather than reaching into component internals.
 
-- **Workflow**: journey outcomes (e.g. `viewToolsWorkflow.expectToolListed("New item #1")`).
-- **Page**: screen invariants after navigation (e.g. `expectScreen`, `expectRowVisible` on the page facade).
-- **Component**: widget state (e.g. `expectCreateToolNavLocked`, marker visibility).
-- **Spec**: orchestration only — call workflow (and occasionally shell fixtures); avoid raw `locator(...)` and avoid duplicating assertions already owned by a workflow/page.
+### Page
 
-## Workflow authoring (test-writer feature)
+A page represents a screen or route.
 
-Each workflow class declares static `meta` via `defineWorkflowMetadata` in [`support/pages/shared/workflows/workflow-meta.ts`](support/pages/shared/workflows/workflow-meta.ts):
+A page exposes user-facing actions for that screen and composes the UI pieces it needs:
 
-- `intent`, `targetPathnames`, `pages`, and `components.shell` / `components.widgets`.
+```ts
+export class RecordsPage extends BasePage {
+  readonly masthead: MastheadComponent;
+  readonly navigationDrawer: NavigationDrawerComponent;
+  readonly table: TableComponent;
 
-This is documentation for readers, not a UI feature.
+  constructor(page: Page) {
+    super(page);
+
+    this.masthead = new MastheadComponent(page);
+    this.navigationDrawer = new NavigationDrawerComponent(page);
+    this.table = new TableComponent(page);
+  }
+}
+```
+
+The page is not treated as a special kind of parent page.
+It is a screen that contains reusable parts.
+
+That is the core composition idea.
+
+### Component
+
+A component represents reusable UI.
+
+Examples:
+
+- masthead
+- navigation drawer
+- table
+- search box
+- modal
+
+Components should hide locator details and expose behaviour that makes sense for that UI part.
+
+### BasePage
+
+A base page is still allowed, but it should stay boring.
+
+In this repo, `BasePage` is only for small shared convenience such as navigation and basic screen expectations.
+
+It should not become the main place where product behaviour lives.
+
+## Prefer this shape
+
+```txt
+Test asks for a workflow
+Workflow coordinates pages
+Page composes components
+Component handles UI detail
+```
+
+Prefer this over making every new screen fit into a parent class hierarchy.
+
+Inheritance can still be useful when there is a real `is-a` relationship.
+For page objects, the more common relationship is `has-a`:
+
+- a page has a masthead
+- a page has a drawer
+- a page has a table
+- a page has a modal
+
+That maps naturally to composition.
 
 ## Fixture usage
+
+Workflow fixtures are the main entry point for tests.
 
 See [`support/fixtures/app.fixture.ts`](support/fixtures/app.fixture.ts).
 
 | Fixture | Use when |
 | --- | --- |
-| `masthead` / `navigationDrawer` | Shell-only behavior (nav lock, workspace, etc.) |
-| `userHomeWorkflow` / `adminHomeWorkflow` | Home + role workspace |
+| `workspaceWorkflow` | Workspace switching and workspace-level behaviour |
+| `userHomeWorkflow` / `adminHomeWorkflow` | Home journeys for different roles |
 | `recordWorkflow` | Records list and record details journeys |
-| `createToolWorkflow` | Create tool journey (ADMIN or USER guard) |
-| `viewToolsWorkflow` | Open View tools and assert built tools list |
+| `createToolWorkflow` | Create tool journey |
+| `viewToolsWorkflow` | Open View tools and assert the tools list |
+| `masthead` / `navigationDrawer` | Shell-only behaviour that is not a full user journey |
 
-There is **no** `controlCenter` bundle in fixtures — pages live inside workflows (and inside page constructors for composition).
+There is no large `controlCenter` fixture that bundles everything together.
 
-## Choose the simplest layer
+Tests should ask for the workflow they need.
 
-- Single-screen behavior: add or extend a **Page** method.
-- Reusable dense UI: extract a **widget** (or **shell**) component.
-- Multi-screen or repeated journey: add a **Workflow**.
+## Assertion ownership
 
-## How to add a new use case
+Keep assertions close to the layer that owns the behaviour.
 
-1. Name the user scenario (end-user test title).
-2. Add/adjust **Page** methods and constructor composition if needed.
-3. Add/adjust **shell** / **widget** components under `components/shell` or `components/widgets`.
-4. Add/adjust **Workflow** with `meta` and wire a fixture in `app.fixture.ts`.
-5. Add a spec under the right **feature folder** (`tests/records`, `tests/tools`, `tests/home`, or `tests/framework`).
-6. Keep specs free of raw locators.
+| Layer | Owns |
+| --- | --- |
+| Workflow | Journey outcomes |
+| Page | Screen-level expectations |
+| Component | Local UI state and widget behaviour |
+| Spec | Scenario orchestration |
 
-## Composition and import rules
+A spec should mostly read as a scenario.
 
-- Workflows import pages only.
-- Pages compose shell/widget components; components do not import workflows or pages.
-- Tests use fixtures; no `locator(...)` in `tests/**`.
+It should not be full of raw locators, table parsing, modal internals, or navigation mechanics.
+
+## Selector and marker contract
+
+Selector preference in support-side code:
+
+1. `getByRole`
+2. `getByLabel`
+3. `getByText`
+4. `data-pom`
+5. `data-testid` as a last resort
+
+DOM marker convention:
+
+| Type | Example |
+| --- | --- |
+| Page root | `data-pom="pages/controlCenter.records"` |
+| Shell component | `data-pom="components/shell/navigationDrawer"` |
+| Widget component | `data-pom="components/widgets/searchBox"` |
+
+The marker convention exists to make page/component boundaries visible and testable without turning selectors into the main design.
 
 ## POM inspector
 
-1. `npm run start:mock:outlined`
-2. Open `http://127.0.0.1:4173/control-center/`
-3. Use the floating **POM inspector**
+The mock app includes a small visual helper for seeing page-object boundaries in the browser.
 
-Sections map to **Page**, **Components (shell)**, and **Widgets**.
+Run:
 
-## Test map (feature folders)
+```bash
+npm run start:mock:outlined
+```
+
+Then open:
+
+```txt
+http://127.0.0.1:4173/control-center/
+```
+
+The floating inspector shows page, shell component, and widget boundaries.
+
+This is mainly a teaching/debugging aid. It helps connect the code structure to what is visible on screen.
+
+## How to add a new use case
+
+1. Start with the user scenario.
+2. Add or adjust page methods for the relevant screen.
+3. Extract reusable UI into a component only when it earns its place.
+4. Add a workflow when the behaviour spans a journey or is repeated across tests.
+5. Expose the workflow through a fixture.
+6. Keep the spec focused on the scenario, not the plumbing.
+
+## Import rules
+
+The dependency direction should stay simple:
+
+- Tests use fixtures.
+- Workflow fixtures compose workflows.
+- Workflows import pages.
+- Pages compose components.
+- Components do not import pages or workflows.
+
+## Quick start
+
+```bash
+npm install
+npm test
+```
+
+Useful commands:
+
+```bash
+npm run test:ui
+npm run test:headed
+npm run start:mock
+npm run start:mock:outlined
+```
+
+`playwright.config.ts` starts the mock app on `http://127.0.0.1:4173/control-center/` during test runs.
+
+## Test map
 
 | Spec | Focus |
 | --- | --- |
-| [`tests/records/records.spec.ts`](tests/records/records.spec.ts) | Records (`admin` / `user` describes) |
-| [`tests/tools/tools.spec.ts`](tests/tools/tools.spec.ts) | Tools + multi-workflow create-then-view |
-| [`tests/home/home.spec.ts`](tests/home/home.spec.ts) | Home and welcome modal |
-| [`tests/framework/workflow.contract.spec.ts`](tests/framework/workflow.contract.spec.ts) | Framework metadata / wiring smoke |
+| [`tests/records/records.spec.ts`](tests/records/records.spec.ts) | Records journeys |
+| [`tests/tools/tools.spec.ts`](tests/tools/tools.spec.ts) | Tool creation and viewing journeys |
+| [`tests/home/home.spec.ts`](tests/home/home.spec.ts) | Home and welcome modal behaviour |
+| [`tests/framework/workflow.contract.spec.ts`](tests/framework/workflow.contract.spec.ts) | Workflow metadata and fixture wiring |
+
+## North star
+
+A good Playwright framework should make the important test easy to read.
+
+For this repo, that means:
+
+> workflow fixtures first, composed pages underneath, reusable components at the edges.
