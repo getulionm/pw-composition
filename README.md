@@ -19,41 +19,51 @@ An example repo for modern Playwright + TypeScript test architecture.
 
 One folder = one product area = one team. **Support code** (`support/modules/<feature>/`) holds that area’s pages, workflows, and `*.fixture.ts` together — not scattered across top-level `pages/`, `workflows/`, `components/` folders. Specs follow the same shape under `tests/<feature>/`, but Proposal 1 is about where **framework code** lives, not the test files themselves.
 
+**❌ Folders by file type** — files grouped by *kind*, so every feature’s pages, workflows, and widgets sit in separate shared piles:
+
+```text
+support/
+├── pages/           catalog.page, cart.page, checkout.page, …
+├── workflows/       browse-catalog.workflow, cart.workflow, …
+└── components/      table, header, modal, search-box, …
+
+→ Who owns catalog? Who reviews cart changes in pages/?
+```
+
+**✅ Code by feature module** — each product area owns its own folder under `support/modules/`:
+
+```text
+support/modules/
+├── shell/           pages/, workflows/, components/, shell.fixture.ts
+├── catalog/         pages/, workflows/, catalog.fixture.ts
+├── cart/            pages/, workflows/, cart.fixture.ts
+└── checkout/        pages/, workflows/, checkout.fixture.ts
+```
+
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "16px"}, "flowchart": {"nodeSpacing": 30, "rankSpacing": 40}}}%%
-flowchart TB
-  subgraph old["❌ Folders by file type"]
+flowchart LR
+  subgraph modShell["shell/"]
     direction TB
-    P["support/pages/ — catalog.page, cart.page, checkout.page"]
-    W["support/workflows/ — browse-catalog, cart"]
-    C["support/components/ — table, header, modal…"]
-    Q["Who owns catalog? Who reviews cart in pages/?"]
+    S1["pages · workflows · components"]
+    S2["shell.fixture.ts"]
   end
-
-  subgraph neu["✅ Code by feature module — support/modules/"]
-    direction LR
-    subgraph modShell["shell/"]
-      direction TB
-      S1["pages · workflows · components"]
-      S2["shell.fixture.ts"]
-    end
-    subgraph modCatalog["catalog/"]
-      direction TB
-      C1["pages · workflows"]
-      C2["catalog.fixture.ts"]
-    end
-    subgraph modCart["cart/"]
-      direction TB
-      K1["pages · workflows"]
-      K2["cart.fixture.ts"]
-    end
-    subgraph modCheckout["checkout/"]
-      direction TB
-      X1["pages · workflows"]
-      X2["checkout.fixture.ts"]
-    end
-    modShell ~~~ modCatalog ~~~ modCart ~~~ modCheckout
+  subgraph modCatalog["catalog/"]
+    direction TB
+    C1["pages · workflows"]
+    C2["catalog.fixture.ts"]
   end
+  subgraph modCart["cart/"]
+    direction TB
+    K1["pages · workflows"]
+    K2["cart.fixture.ts"]
+  end
+  subgraph modCheckout["checkout/"]
+    direction TB
+    X1["pages · workflows"]
+    X2["checkout.fixture.ts"]
+  end
+  modShell ~~~ modCatalog ~~~ modCart ~~~ modCheckout
 ```
 
 
