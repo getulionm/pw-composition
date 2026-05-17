@@ -17,7 +17,7 @@ An example repo for modern Playwright + TypeScript test architecture.
 
 ### Proposal 1 — Modules, not “all pages in one folder”
 
-One folder = one product area = one team. Pages, workflows, and the module's fixture slice all live **inside** that folder, instead of being scattered across `pages/`, `workflows/`, `components/`.
+One folder = one product area = one team. **Support code** (`support/modules/<feature>/`) holds that area’s pages, workflows, and `*.fixture.ts` together — not scattered across top-level `pages/`, `workflows/`, `components/` folders. Specs follow the same shape under `tests/<feature>/`, but Proposal 1 is about where **framework code** lives, not the test files themselves.
 
 ```mermaid
 %%{init: {"themeVariables": {"fontSize": "16px"}, "flowchart": {"nodeSpacing": 30, "rankSpacing": 40}}}%%
@@ -30,29 +30,29 @@ flowchart TB
     Q["Who owns catalog? Who reviews cart in pages/?"]
   end
 
-  subgraph neu["✅ Modules by feature"]
+  subgraph neu["✅ Code by feature module — support/modules/"]
     direction LR
-    subgraph shell["shell/"]
+    subgraph modShell["shell/"]
       direction TB
       S1["pages · workflows · components"]
       S2["shell.fixture.ts"]
     end
-    subgraph catalog["catalog/"]
+    subgraph modCatalog["catalog/"]
       direction TB
       C1["pages · workflows"]
       C2["catalog.fixture.ts"]
     end
-    subgraph cart["cart/"]
+    subgraph modCart["cart/"]
       direction TB
       K1["pages · workflows"]
       K2["cart.fixture.ts"]
     end
-    subgraph checkout["checkout/"]
+    subgraph modCheckout["checkout/"]
       direction TB
       X1["pages · workflows"]
       X2["checkout.fixture.ts"]
     end
-    shell ~~~ catalog ~~~ cart ~~~ checkout
+    modShell ~~~ modCatalog ~~~ modCart ~~~ modCheckout
   end
 ```
 
