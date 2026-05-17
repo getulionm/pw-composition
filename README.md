@@ -119,10 +119,7 @@ Toward:
 flowchart TB
   subgraph modules["Modules · support/modules/*"]
     direction LR
-    shellM[shell]
-    catalogM[catalog]
-    cartM[cart]
-    checkoutM[checkout]
+    shellM[shell] ~~~ catalogM[catalog] ~~~ cartM[cart] ~~~ checkoutM[checkout]
   end
 
   merge["app.fixture.ts · mergeTests(...)"]
