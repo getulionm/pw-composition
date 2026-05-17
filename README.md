@@ -20,29 +20,39 @@ An example repo for modern Playwright + TypeScript test architecture.
 One folder = one product area = one team. Pages, workflows, and the module's fixture slice all live **inside** that folder, instead of being scattered across `pages/`, `workflows/`, `components/`.
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "flowchart": {"nodeSpacing": 30, "rankSpacing": 40}}}%%
 flowchart TB
   subgraph old["❌ Folders by file type"]
     direction TB
-    P["support/pages/<br/>catalog.page.ts<br/>cart.page.ts<br/>checkout.page.ts"]
-    W["support/workflows/<br/>browse-catalog.workflow.ts<br/>cart.workflow.ts"]
-    C["support/components/<br/>table, header, modal…"]
-    Q["Who owns catalog?<br/>Who reviews cart changes in pages/?"]
+    P["support/pages/ — catalog.page, cart.page, checkout.page"]
+    W["support/workflows/ — browse-catalog, cart"]
+    C["support/components/ — table, header, modal…"]
+    Q["Who owns catalog? Who reviews cart in pages/?"]
   end
 
   subgraph neu["✅ Modules by feature"]
     direction LR
-    subgraph shell["modules/shell/"]
+    subgraph shell["shell/"]
+      direction TB
       S1["pages · workflows · components"]
       S2["shell.fixture.ts"]
     end
-    subgraph catalog["modules/catalog/"]
+    subgraph catalog["catalog/"]
+      direction TB
       C1["pages · workflows"]
       C2["catalog.fixture.ts"]
     end
-    subgraph cart["modules/cart/"]
+    subgraph cart["cart/"]
+      direction TB
       K1["pages · workflows"]
       K2["cart.fixture.ts"]
     end
+    subgraph checkout["checkout/"]
+      direction TB
+      X1["pages · workflows"]
+      X2["checkout.fixture.ts"]
+    end
+    shell ~~~ catalog ~~~ cart ~~~ checkout
   end
 ```
 
@@ -116,8 +126,9 @@ Toward:
 **How a test run is wired** — modules supply fixture slices; the test uses fixtures (pages and/or workflows), not modules directly:
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "flowchart": {"nodeSpacing": 30, "rankSpacing": 40}}}%%
 flowchart TB
-  subgraph modules["Modules · support/modules/*"]
+  subgraph modules["Modules — support/modules/"]
     direction LR
     shellM[shell] ~~~ catalogM[catalog] ~~~ cartM[cart] ~~~ checkoutM[checkout]
   end
@@ -196,8 +207,9 @@ The mock app is a tiny e-commerce surface: a Shell hosts three feature modules. 
 **One URL, one owning team.** Each route has a single `*Page` class in the module that owns that screen’s product behavior. Other areas do not copy that class: they get there via their own workflows, shared shell/widgets, or a test that composes several fixtures.
 
 ```mermaid
+%%{init: {"themeVariables": {"fontSize": "16px"}, "flowchart": {"nodeSpacing": 30, "rankSpacing": 40}}}%%
 flowchart TB
-  subgraph repo[support/modules/]
+  subgraph repo["Modules — support/modules/"]
     shell[shell/<br/>header, navDrawer, toast,<br/>HomePage, ShellWorkflow]
     catalog[catalog/<br/>CatalogPage, ProductDetailPage,<br/>BrowseCatalogWorkflow]
     cart[cart/<br/>CartPage,<br/>CartWorkflow]
@@ -209,45 +221,47 @@ flowchart TB
 
 Folder layout matches:
 
-```
+```text
 support/
-  framework/                 # the only inheritable class lives here
-    base.page.ts
-    pom-marker.ts
-  shared/components/         # truly cross-module atoms
-    table | search-box | modal | quantity-stepper | product-card
-  modules/
-    users/                   # who starts the journey (fixture injection)
-      user.model.ts
-      user-session.ts
-      users.fixture.ts
-    shell/
-      components/{header,nav-drawer,toast,featured-offers}.component.ts
-      pages/home.page.ts
-      workflows/{shell,membership}.workflow.ts
-      shell.fixture.ts
-    catalog/
-      pages/{catalog,product-detail}.page.ts
-      workflows/browse-catalog.workflow.ts
-      catalog.fixture.ts
-    cart/
-      pages/cart.page.ts
-      workflows/cart.workflow.ts
-      cart.fixture.ts
-    checkout/
-      pages/{checkout,order-confirmation}.page.ts
-      workflows/checkout.workflow.ts
-      checkout.fixture.ts
-  fixtures/
-    app.fixture.ts           # mergeTests of every module fixture
-  helpers/
-    pom-visual.ts
+├── framework/                    # only BasePage may be extended
+│   ├── base.page.ts
+│   └── pom-marker.ts
+├── shared/
+│   └── components/               # cross-module widgets
+│       └── table, search-box, modal, quantity-stepper, product-card
+├── modules/
+│   ├── users/                    # journey user (fixture injection)
+│   │   ├── user.model.ts
+│   │   ├── user-session.ts
+│   │   └── users.fixture.ts
+│   ├── shell/
+│   │   ├── components/           # header, nav-drawer, toast, featured-offers
+│   │   ├── pages/home.page.ts
+│   │   ├── workflows/            # shell, membership
+│   │   └── shell.fixture.ts
+│   ├── catalog/
+│   │   ├── pages/                  # catalog, product-detail
+│   │   ├── workflows/browse-catalog.workflow.ts
+│   │   └── catalog.fixture.ts
+│   ├── cart/
+│   │   ├── pages/cart.page.ts
+│   │   ├── workflows/cart.workflow.ts
+│   │   └── cart.fixture.ts
+│   └── checkout/
+│       ├── pages/                  # checkout, order-confirmation
+│       ├── workflows/checkout.workflow.ts
+│       └── checkout.fixture.ts
+├── fixtures/
+│   └── app.fixture.ts              # mergeTests(...)
+└── helpers/
+    └── pom-visual.ts
+
 tests/
-  users/        # who starts the journey (user fixture teaching spec)
-  shell/        # shell-only behaviour
-  catalog/      # catalog feature
-  cart/         # cart feature
-  checkout/     # checkout feature
+├── users/
+├── shell/
+├── catalog/
+├── cart/
+└── checkout/
 ```
 
 A `CODEOWNERS` for this repo writes itself:

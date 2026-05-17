@@ -20,7 +20,16 @@
 
       const blocks = root.querySelectorAll("pre.mermaid");
       if (blocks.length && typeof mermaid !== "undefined") {
-        mermaid.initialize({ startOnLoad: false, theme: "neutral", securityLevel: "strict" });
+        mermaid.initialize({
+          startOnLoad: false,
+          theme: "neutral",
+          securityLevel: "strict",
+          themeVariables: {
+            fontSize: "16px",
+            fontFamily: "system-ui, sans-serif",
+          },
+          flowchart: { nodeSpacing: 30, rankSpacing: 40 },
+        });
         await mermaid.run({ nodes: blocks });
       }
     })

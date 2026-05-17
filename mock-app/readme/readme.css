@@ -150,4 +150,10 @@ body {
 .readme-article .mermaid svg {
   max-width: 100%;
   height: auto;
+  font-size: 16px;
+}
+
+.readme-article .mermaid .cluster-label .nodeLabel,
+.readme-article .mermaid .nodeLabel {
+  font-size: 16px;
 }
