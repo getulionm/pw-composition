@@ -1,0 +1,153 @@
+* {
+  box-sizing: border-box;
+}
+
+html {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  min-height: 100%;
+  font-family: system-ui, -apple-system, Segoe UI, sans-serif;
+  font-size: 16px;
+  line-height: 1.6;
+  color: #1a1a1a;
+  background: #f6f6f8;
+}
+
+.readme-toolbar {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 10px 20px;
+  border-bottom: 1px solid #ddd;
+  background: #fff;
+}
+
+.readme-toolbar__back {
+  font-weight: 600;
+  color: #4f46e5;
+  text-decoration: none;
+}
+
+.readme-toolbar__back:hover {
+  text-decoration: underline;
+}
+
+.readme-toolbar__label {
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #71717a;
+}
+
+.readme-main {
+  max-width: 52rem;
+  margin: 0 auto;
+  padding: 28px 20px 48px;
+}
+
+.readme-article {
+  padding: 28px 32px;
+  border-radius: 12px;
+  border: 1px solid #e4e4e7;
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.06);
+}
+
+.readme-loading,
+.readme-error {
+  color: #71717a;
+}
+
+.readme-error {
+  color: #b91c1c;
+}
+
+.readme-article :first-child {
+  margin-top: 0;
+}
+
+.readme-article h1 {
+  font-size: 1.75rem;
+  line-height: 1.25;
+  border-bottom: 1px solid #e4e4e7;
+  padding-bottom: 0.35em;
+}
+
+.readme-article h2 {
+  font-size: 1.35rem;
+  margin-top: 1.6em;
+  padding-bottom: 0.2em;
+  border-bottom: 1px solid #f0f0f2;
+}
+
+.readme-article h3 {
+  font-size: 1.1rem;
+  margin-top: 1.25em;
+}
+
+.readme-article a {
+  color: #4f46e5;
+}
+
+.readme-article pre {
+  overflow-x: auto;
+  padding: 12px 14px;
+  border-radius: 8px;
+  background: #f4f4f5;
+  font-size: 0.88em;
+}
+
+.readme-article code {
+  font-family: ui-monospace, Consolas, monospace;
+  font-size: 0.9em;
+}
+
+.readme-article :not(pre) > code {
+  padding: 0.15em 0.35em;
+  border-radius: 4px;
+  background: #f4f4f5;
+}
+
+.readme-article table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.92em;
+}
+
+.readme-article th,
+.readme-article td {
+  border: 1px solid #e4e4e7;
+  padding: 8px 10px;
+  text-align: left;
+}
+
+.readme-article th {
+  background: #fafafa;
+}
+
+.readme-article blockquote {
+  margin: 1em 0;
+  padding-left: 1em;
+  border-left: 4px solid #d4d4d8;
+  color: #52525b;
+}
+
+.readme-article pre.mermaid {
+  margin: 1.25em 0;
+  padding: 0;
+  border: none;
+  background: transparent;
+  overflow-x: auto;
+}
+
+.readme-article .mermaid svg {
+  max-width: 100%;
+  height: auto;
+}

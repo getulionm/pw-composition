@@ -668,7 +668,16 @@
     const title = document.createElement("div");
     title.className = "pw-pom-visual-panel__title";
     title.textContent = "POM inspector";
-    panel.appendChild(title);
+    const header = document.createElement("div");
+    header.className = "pw-pom-visual-panel__header";
+    header.appendChild(title);
+    const readmeLink = document.createElement("a");
+    readmeLink.className = "pw-pom-visual-panel__readme-link";
+    readmeLink.href = "/readme/";
+    readmeLink.textContent = "README";
+    readmeLink.title = "Project README (not a store page)";
+    header.appendChild(readmeLink);
+    panel.appendChild(header);
 
     const toggleRow = document.createElement("label");
     toggleRow.className = "pw-pom-visual-toggle-row";

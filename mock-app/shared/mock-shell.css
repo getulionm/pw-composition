@@ -553,13 +553,36 @@ td {
   display: none !important;
 }
 
-.pw-pom-visual-panel__title {
+.pw-pom-visual-panel__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
   margin: 0 0 8px;
+}
+
+.pw-pom-visual-panel__title {
+  margin: 0;
   font-size: 11px;
   font-weight: 700;
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: #71717a;
+}
+
+.pw-pom-visual-panel__readme-link {
+  flex-shrink: 0;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #a5b4fc;
+  text-decoration: none;
+}
+
+.pw-pom-visual-panel__readme-link:hover {
+  color: #c7d2fe;
+  text-decoration: underline;
 }
 
 .pw-pom-visual-toggle-row {

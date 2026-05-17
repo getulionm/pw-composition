@@ -12,6 +12,9 @@
     "test:outlined:ui": "cross-env POM_VISUAL=1 playwright test --ui",
     "lint": "eslint .",
     "typecheck": "tsc --noEmit",
+    "build:mock": "node scripts/copy-readme-to-mock.mjs",
+    "prestart:mock": "npm run build:mock",
+    "prestart:mock:outlined": "npm run build:mock",
     "start:mock": "npx http-server mock-app -p 4173 -c-1",
     "start:mock:outlined": "npx http-server mock-app -p 4173 -c-1 -o /?pom=1"
   },

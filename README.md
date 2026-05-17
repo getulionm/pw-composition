@@ -8,16 +8,12 @@ An example repo for modern Playwright + TypeScript test architecture.
 | **Composition over inheritance**             | Pages and workflows are built by assembling small pieces — not by extending a deep class tree.      |
 | **Modules over folders of files**            | Code is grouped by **product area** (Catalog, Cart…), not by **file type** (all pages in one pile). |
 | **Fixtures composed from per-module slices** | Each team owns a small fixture file; the root **merges** them — no central 500-line fixture.        |
-| `**test.step` instead of Cucumber glue**     | Given/When/Then lives in TypeScript; no feature files or regex step definitions.                    |
+| **`test.step` instead of Cucumber glue**     | Given/When/Then lives in TypeScript; no feature files or regex step definitions.                    |
 
 
-**Pitching this inside your company?** Read [Two proposals that scale with teams](#-two-proposals-that-scale-with-teams) first — that is the organizational model. Everything else (layers, lint rules, specs) supports it.
-
-The whole repo is the artifact: folder tree, fixture wiring, and spec files are meant to be read.
+**Two proposals that scale with teams:** (1) **group code by product module** — each area owns its pages, workflows, and `*.fixture.ts` under `support/modules/<name>/`; (2) **merge fixtures at the root** — `app.fixture.ts` only calls `mergeTests(...)`, so teams do not share one giant fixture file. The rest of this README is how those two ideas show up in layers, lint, and specs.
 
 ## 🧱 Two proposals that scale with teams
-
-Two organizing choices this repo bets on. Diagrams here; the deeper sections later cover the actual layout and code.
 
 ### Proposal 1 — Modules, not “all pages in one folder”
 
@@ -52,8 +48,6 @@ flowchart TB
 
 
 
-→ See [📦 Module ownership](#-module-ownership) for the full folder tree and the CODEOWNERS map this folder shape gives you for free.
-
 ### Proposal 2 — Fixtures are merged slices, not one god file
 
 **The problem on larger apps/teams:** the fixture file keeps growing. Every new page, workflow, or helper lands in the same `test.extend({...})` block. It becomes a multi-hundred-line file every team has to edit, a merge-conflict hotspot, and a place where unrelated modules quietly start depending on each other.
@@ -81,11 +75,24 @@ flowchart LR
 
 
 
-→ See [🔌 Fixtures: per-module, composed at the root](#-fixtures-per-module-composed-at-the-root) for the actual `catalog.fixture.ts` and `mergeTests` code. Adding a fifth product area is a new folder + one line in `mergeTests`.
+### What belongs inside a module (and what does not)
 
-Workflows stay inside their module; **only tests cross module boundaries**. That keeps modules independent and journey specs readable.
+A module is a **team-owned boundary** in `support/modules/<name>/`:
 
-## 🎯 The claim
+
+| Inside the module                                                                                       | Outside the module                                                   |
+| ------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| `pages/` for routes that area owns                                                                      | Another module’s `pages/` or `workflows/`                            |
+| `workflows/` that compose **only** that module’s pages (plus `framework/`, `shared/`, `shell`, `users`) | `import` from a sibling feature module (catalog → cart is forbidden) |
+| `components/` for UI that is specific to that area                                                      | Cross-area journeys written as one mega-workflow                     |
+| `*.fixture.ts` registering that module’s pages and workflows                                            | —                                                                    |
+
+
+**Tests are the only place that may compose multiple modules.** Example: a purchase spec calls `browseCatalogWorkflow`, `cartWorkflow`, and `checkoutWorkflow` in one file because ESLint blocks `catalog` from importing `cart`. That verbosity is intentional — it is the integration layer.
+
+Workflows stay small and local; journey specs show how areas connect.
+
+## 🎯 General Goal
 
 A test framework should make user behavior easier to express. If understanding a test requires opening five parent classes, tracing inheritance trees, and remembering hidden helpers, the framework is fighting maintainability.
 
@@ -106,24 +113,46 @@ Toward:
 
 ## 🏛️ Layer hierarchy
 
-```mermaid
-flowchart TD
-  fixture["Playwright fixture<br/>(merged from each module)"]
-  workflow["Workflow<br/>(user journey)"]
-  page["Page<br/>(one screen, extends BasePage)"]
-  component["Component<br/>(reusable DOM region)"]
+**How a test run is wired** — modules supply fixture slices; the test uses fixtures (pages and/or workflows), not modules directly:
 
-  fixture --> workflow
-  workflow --> page
-  page --> component
+```mermaid
+flowchart TB
+  subgraph modules["Modules · support/modules/*"]
+    direction LR
+    shellM[shell]
+    catalogM[catalog]
+    cartM[cart]
+    checkoutM[checkout]
+  end
+
+  merge["app.fixture.ts · mergeTests(...)"]
+  modules --> merge
+
+  merge --> fixture["Fixture · injected in the test"]
+  fixture --> workflow["Workflow · user journey"]
+  workflow --> page["Page · one route · extends BasePage"]
 ```
 
 
 
-- **Fixtures** are dependency injection. Each module ships its own fixture file; the root fixture merges them.
-- **Workflows** are user journeys. They are plain classes that compose pages in their constructor. No `BaseWorkflow`.
-- **Pages** are one screen each. They extend `BasePage` (the only inheritance) and compose components in their constructor.
-- **Components** are reusable DOM regions: header, nav drawer, table, modal, search box, qty stepper, toast.
+**What a page composes** — every page class assembles two layers of UI. **Shell components** are the outer app chrome (masthead, nav, toast): they wrap the route and look the same across the store. **Widget components** are the inner pieces on that screen’s content (table, modal, search box, stepper, product card): the page picks which widgets the route needs. Shell lives in the shell module; widgets live in `shared/` and any module may import them.
+
+```mermaid
+flowchart TD
+  page["Page · e.g. CatalogPage"]
+
+  page --> shell["Shell · outer chrome<br/>modules/shell/components/<br/>header · navDrawer · toast"]
+  page --> widgets["Widgets · inner content<br/>support/shared/components/<br/>table · modal · searchBox · qtyStepper · productCard"]
+```
+
+
+
+- **Modules** — team-owned folders (`catalog/`, `cart/`, `shell/`, `users/`, …). Each holds that area’s `pages/`, `workflows/`, optional `components/`, and `*.fixture.ts`. Sibling modules do not import each other.
+- **Fixtures** — dependency injection. Each module registers its pages and workflows in its fixture file; `app.fixture.ts` merges them with `mergeTests`.
+- **Workflows** — plain classes that compose pages in the constructor. No `BaseWorkflow`.
+- **Pages** — one screen each; the only inheritance is `extends BasePage`. They assemble shell + widget components in the constructor.
+- **Shell components** — app chrome shared across routes (masthead, nav drawer, toast). Live under `support/modules/shell/components/`.
+- **Widget components** — dense reusable UI (table, modal, search box, quantity stepper, product card). Live under `support/shared/components/` and are imported by any module that needs them.
 
 ## 🧩 Composition over inheritance
 
@@ -164,8 +193,6 @@ export class CheckoutWorkflow {
 ```
 
 ## 📦 Module ownership
-
-*See [Proposal 1 — Modules, not “all pages in one folder”](#proposal-1--modules-not-all-pages-in-one-folder) for the before/after picture.*
 
 The mock app is a tiny e-commerce surface: a Shell hosts three feature modules. Each module is a self-contained team-owned slice — pages, workflows, and `*.fixture.ts` in one place.
 
@@ -236,8 +263,6 @@ support/modules/checkout/   @checkout-team
 ```
 
 ## 🔌 Fixtures: per-module, composed at the root
-
-*See [Proposal 2 — Fixtures are merged slices](#proposal-2--fixtures-are-merged-slices-not-one-god-file) for the merge diagram.*
 
 Each module owns its fixture file. Page fixtures (`catalogPage`, `cartPage`, …) and workflow fixtures (`browseCatalogWorkflow`, `cartWorkflow`, …) are registered together in that module — simple specs use a page, journey specs use a workflow. The root file only merges; it does not list every class.
 
@@ -374,7 +399,7 @@ test("a member completes a purchase across Catalog -> Cart -> Checkout", async (
 });
 ```
 
-Four module-owned workflows used in one test: shell, catalog, cart, checkout — plus `**membershipWorkflow.switchToMember()**` so the journey acts as a member (you can also declare the starting user with `test.use({ user: memberUser })` at file top; see [Handling users](#-handling-users)). Checkout uses `placeOrder({ saveCard: true })` for form behavior only, not identity. None of these workflows may import from a sibling module; cross-module journeys are assembled in the test.
+Four module-owned workflows used in one test: shell, catalog, cart, checkout — plus `membershipWorkflow.switchToMember()` so the journey acts as a member (or `test.use({ user: memberUser })` at file top; see **Handling users**). Checkout uses `placeOrder({ saveCard: true })` for form behavior only, not identity. None of these workflows may import from a sibling module; cross-module journeys are assembled in the test.
 
 ## 📖 `test.step` vs Cucumber
 
@@ -433,16 +458,16 @@ If business users actively maintain feature files, Cucumber may still be worth i
 ## 🗺️ Where to put X
 
 
-| Adding...                                        | Where it lives                                                                                |
-| ------------------------------------------------ | --------------------------------------------------------------------------------------------- |
-| A new screen (page + mock route)                 | `support/modules/<module>/pages/<name>.page.ts` + `mock-app/<route>/` (same stem — see below) |
-| One screen, route-local behaviour                | New method on a **Page**                                                                      |
-| A reusable dense UI (table, modal, picker)       | New **shared component** under `support/shared/components/`                                   |
-| A reusable shell surface (header, drawer, toast) | New **shell component** under `support/modules/shell/components/`                             |
-| A repeated user journey                          | New **workflow** in the owning module                                                         |
-| A new feature module                             | New folder under `support/modules/<name>/` + line in `mergeTests`                             |
-| Starting user / session bootstrap                | `test.use({ user: guestUser })` + `users.fixture.ts` (see [Handling users](#-handling-users)) |
-| Cross-module orchestration                       | In the **test**, by calling multiple workflows                                                |
+| Adding...                                        | Where it lives                                                                                               |
+| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| A new screen (page + mock route)                 | `support/modules/<module>/pages/<name>.page.ts` + `mock-app/<route>/` (same stem — **Locators and screens**) |
+| One screen, route-local behaviour                | New method on a **Page**                                                                                     |
+| A reusable dense UI (table, modal, picker)       | New **shared component** under `support/shared/components/`                                                  |
+| A reusable shell surface (header, drawer, toast) | New **shell component** under `support/modules/shell/components/`                                            |
+| A repeated user journey                          | New **workflow** in the owning module                                                                        |
+| A new feature module                             | New folder under `support/modules/<name>/` + line in `mergeTests`                                            |
+| Starting user / session bootstrap                | `test.use({ user: guestUser })` + `users.fixture.ts` (**Handling users** section)                            |
+| Cross-module orchestration                       | In the **test**, by calling multiple workflows                                                               |
 
 
 ## ⚙️ Customizing the contract layer
@@ -453,6 +478,8 @@ Enforcement is intentionally a **minor suggestion**, not a manifesto. Two ESLint
 2. **Module isolation** via `eslint-plugin-boundaries`. Each module folder may import from `framework/`, `shared/`, `helpers/`, the `users` module, the shell module, or itself. Sibling feature modules are not importable. Adding a new product module is three lines of config.
 
 Both rules are commented in the config and removable in one edit. An org fork can also add stricter rules (forbid `page.locator(` in workflow specs, require file naming, ban barrels, etc.) by appending an `overrides` block — without touching framework code.
+
+`tests/catalog/catalog-browse.raw.spec.ts` is a deliberate counter-example: same assertion as `catalog-browse.spec.ts`, but with raw `page.locator` calls. The framework does not ban that escape hatch; the page-fixture version is what we recommend.
 
 ## 🏷️ Locators and screens
 
@@ -485,7 +512,7 @@ super(page, {
 mock-app/catalog/index.html  →  /catalog/
 ```
 
-New screens and other artifacts → [Where to put X](#️-where-to-put-x).
+New screens and other artifacts: see **Where to put X** above.
 
 ## ▶️ Run
 
@@ -506,7 +533,7 @@ Other scripts:
 
 ## 🔍 POM inspector
 
-The mock ships with a floating "POM inspector" widget (bottom-right): toggle outlines on/off, see live lists of visible pages, shell components, and widgets. Configuration lives in `[mock-app/shared/pom-outline-config.json](mock-app/shared/pom-outline-config.json)`.
+The mock ships with a floating "POM inspector" widget (bottom-right): toggle outlines on/off, see live lists of visible pages, shell components, and widgets, and open **[README](/readme/)** (project docs rendered from this file — not a store page). Configuration lives in `[mock-app/shared/pom-outline-config.json](mock-app/shared/pom-outline-config.json)`.
 
 **Outline colors:** **blue** = shell (solid), **purple** = page (solid), **green** = widgets (dashed). Inspector panel uses the same three colors.
 
@@ -557,7 +584,7 @@ This layout is a set of **rules**, not convenience suggestions.
 | -------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Modules do not import sibling modules**          | Clear CODEOWNERS lines; no cart→catalog→checkout import webs        | A journey that crosses areas is **wired in the test**, not hidden inside one “mega workflow”                                               |
 | **Workflows stay inside their module**             | Each team owns journeys for its screens                             | Complex specs **must** pull several fixtures (`shellWorkflow`, `browseCatalogWorkflow`, `cartWorkflow`, …) — that verbosity is intentional |
-| **One `*Page` class per route, one owning module** | No duplicate page objects or “who maintains `CheckoutPage`?” fights | Shared UI goes in **shell** or `**shared/components`**, not a second copy of a page class                                                  |
+| **One `*Page` class per route, one owning module** | No duplicate page objects or “who maintains `CheckoutPage`?” fights | Shared UI goes in **shell** or **`shared/components`**, not a second copy of a page class                                                  |
 | **Root fixture = `mergeTests` only**               | Adding a team’s surface does not edit everyone else’s fixture file  | New module = new folder + one line in `mergeTests` (a deliberate onboarding step)                                                          |
 
 

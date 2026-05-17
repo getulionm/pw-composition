@@ -18,7 +18,7 @@ export default defineConfig({
   },
 
   webServer: {
-    command: `npx http-server mock-app -p ${MOCK_PORT} -c-1 --silent`,
+    command: `node scripts/copy-readme-to-mock.mjs && npx http-server mock-app -p ${MOCK_PORT} -c-1 --silent`,
     url: baseURL,
     reuseExistingServer: !process.env.CI,
     timeout: 30_000,
