@@ -1,7 +1,7 @@
 import { expect, Locator, Page } from "@playwright/test";
 import { componentPomMarker, expectPomMarkerVisible } from "../../framework/pom-marker";
 
-type CellLookup = {
+export type TableCellLookup = {
   row: string;
   column: string;
 };
@@ -58,10 +58,16 @@ export class TableComponent {
     await this.rowByText(rowText).getByRole("button", { name: buttonName }).click();
   }
 
-  async getCellText({ row, column }: CellLookup): Promise<string> {
-    const targetRow = this.rowByText(row);
-    const cell = targetRow.getByTestId(`table-cell-${normalise(column)}`);
-    return (await cell.textContent())?.trim() ?? "";
+  cell({ row, column }: TableCellLookup): Locator {
+    return this.rowByText(row).getByTestId(`table-cell-${normalise(column)}`);
+  }
+
+  async expectCellText({ row, column }: TableCellLookup, text: string): Promise<void> {
+    await expect(this.cell({ row, column })).toHaveText(text);
+  }
+
+  async getCellText(lookup: TableCellLookup): Promise<string> {
+    return (await this.cell(lookup).textContent())?.trim() ?? "";
   }
 }
 

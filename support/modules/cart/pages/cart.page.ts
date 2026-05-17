@@ -43,8 +43,7 @@ export class CartPage extends BasePage {
   }
 
   async expectLineUnitPrice(productName: string, price: string): Promise<void> {
-    const row = this.rowFor(productName);
-    await expect(row.locator("td").nth(1)).toHaveText(price);
+    await this.table.expectCellText({ row: productName, column: "price" }, price);
   }
 
   async expectLineNotVisible(productName: string): Promise<void> {
@@ -64,7 +63,7 @@ export class CartPage extends BasePage {
   }
 
   async removeLine(productName: string): Promise<void> {
-    await this.rowFor(productName).getByRole("button", { name: `Remove ${productName}` }).click();
+    await this.table.clickRowButton(productName, `Remove ${productName}`);
   }
 
   async expectTotal(amount: string): Promise<void> {

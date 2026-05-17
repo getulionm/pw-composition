@@ -106,16 +106,16 @@
             tr.setAttribute("data-product-slug", line.slug);
             tr.innerHTML =
               `<td>${escapeHtml(line.name)}</td>` +
-              `<td>£${fmt(Number(line.price))}</td>` +
-              `<td>` +
+              `<td data-testid="table-cell-price">£${fmt(Number(line.price))}</td>` +
+              `<td data-testid="table-cell-quantity">` +
               `<span class="qty-stepper" data-pom="components/widgets/quantityStepper">` +
               `<button type="button" class="qty-decrement" aria-label="Decrease quantity of ${escapeHtml(line.name)}">&minus;</button>` +
               `<span class="qty-value" data-testid="qty-value">${Number(line.qty) || 0}</span>` +
               `<button type="button" class="qty-increment" aria-label="Increase quantity of ${escapeHtml(line.name)}">+</button>` +
               `</span>` +
               `</td>` +
-              `<td data-testid="cart-cell-subtotal">£${fmt(subtotal)}</td>` +
-              `<td><button type="button" class="cart-remove-btn" aria-label="Remove ${escapeHtml(line.name)}">Remove</button></td>`;
+              `<td data-testid="table-cell-subtotal">£${fmt(subtotal)}</td>` +
+              `<td data-testid="table-cell-action"><button type="button" class="cart-remove-btn" aria-label="Remove ${escapeHtml(line.name)}">Remove</button></td>`;
             tbody.appendChild(tr);
           }
           if (totalAmount) totalAmount.textContent = fmt(total);

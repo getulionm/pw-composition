@@ -58,16 +58,12 @@ export class CatalogPage extends BasePage {
     await this.table.clickRowAction(name, "View");
   }
 
-  private priceCellFor(productName: string) {
-    return this.table.rowByText(productName).locator("td.catalog-price-cell");
-  }
-
   async expectGuestPriceFor(productName: string, price: string): Promise<void> {
-    await expect(this.priceCellFor(productName)).toHaveText(price);
+    await this.table.expectCellText({ row: productName, column: "price" }, price);
   }
 
   async expectMemberPriceFor(productName: string, fullPrice: string, memberPrice: string): Promise<void> {
-    const cell = this.priceCellFor(productName);
+    const cell = this.table.cell({ row: productName, column: "price" });
     await expect(cell.locator(".price-was s")).toHaveText(fullPrice);
     await expect(cell.locator(".price-now")).toHaveText(memberPrice);
   }

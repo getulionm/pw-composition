@@ -1,5 +1,6 @@
 import { mergeTests } from "@playwright/test";
 import { registerPomVisualOnPage } from "../helpers/pom-visual";
+import { test as usersTest } from "../modules/users/users.fixture";
 import { test as shellTest } from "../modules/shell/shell.fixture";
 import { test as catalogTest } from "../modules/catalog/catalog.fixture";
 import { test as cartTest } from "../modules/cart/cart.fixture";
@@ -16,7 +17,7 @@ import { test as checkoutTest } from "../modules/checkout/checkout.fixture";
  *      (opt-in via `POM_VISUAL=1`). Tests never reference this; the override
  *      runs once per page automatically.
  */
-const merged = mergeTests(shellTest, catalogTest, cartTest, checkoutTest);
+const merged = mergeTests(usersTest, shellTest, catalogTest, cartTest, checkoutTest);
 
 export const test = merged.extend({
   page: async ({ page }, use) => {
