@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Cart</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/shared/mock-shell.css" />
+  </head>
+  <body>
+    <header class="shell-header" role="banner" data-pom="components/shell/header">
+      <div class="shell-brand">
+        <img src="/shared/mock-logo.svg" width="32" height="32" alt="" />
+        <span class="shell-title">MOCK STORE</span>
+      </div>
+      <div class="shell-membership">
+        <label for="membership-select" class="sr-only">Membership</label>
+        <select id="membership-select" aria-label="Membership">
+          <option value="MEMBER" selected>MEMBER</option>
+          <option value="GUEST">GUEST</option>
+        </select>
+      </div>
+      <div class="shell-header-spacer"></div>
+      <a class="shell-cart-link" href="/cart/" aria-label="Cart">
+        Cart <span id="cart-badge" class="cart-badge" aria-label="items in cart" data-cart-count="0">0</span>
+      </a>
+      <div class="shell-user-wrap">
+        <button type="button" id="user-menu-btn" aria-expanded="false" aria-haspopup="true">Member menu</button>
+        <div id="user-dropdown" class="user-dropdown" hidden role="menu">
+          <div class="user-name" role="menuitem">Sam Patel</div>
+        </div>
+      </div>
+    </header>
+    <div class="layout" id="app-layout">
+      <div class="nav-drawer" data-pom="components/shell/navDrawer">
+        <nav id="side-nav" class="side-nav" aria-label="Main">
+          <p><a href="/">Home</a></p>
+          <p><a href="/catalog/">Catalog</a></p>
+          <p><a href="/cart/">Cart</a></p>
+        </nav>
+        <button type="button" id="collapse-menu-btn" class="nav-rail-toggle" aria-expanded="true" aria-label="Collapse menu">
+          <span class="drawer-chev" aria-hidden="true">&lt;</span>
+          <span class="rail-label">Collapse menu</span>
+        </button>
+      </div>
+      <div class="main-wrap">
+        <main
+          data-pom="pages/store.cart"
+          data-pom-composition="components/widgets/table,components/widgets/quantityStepper"
+        >
+          <h1>Your cart</h1>
+          <p id="empty-cart-message" hidden>Your cart is empty.</p>
+          <table data-pom="components/widgets/table" aria-label="Cart items">
+            <thead>
+              <tr>
+                <th scope="col">NAME</th>
+                <th scope="col">PRICE</th>
+                <th scope="col">QUANTITY</th>
+                <th scope="col">SUBTOTAL</th>
+                <th scope="col">ACTION</th>
+              </tr>
+            </thead>
+            <tbody id="cart-table-body"></tbody>
+          </table>
+          <p id="cart-total-row" hidden>
+            <strong>Total:</strong> £<span id="cart-total-amount" data-testid="cart-total">0.00</span>
+          </p>
+          <p>
+            <a id="checkout-link" href="/checkout/" role="button">Checkout</a>
+          </p>
+        </main>
+      </div>
+    </div>
+    <div id="toast-root" class="toast-root" aria-live="polite" data-pom="components/shell/toast"></div>
+    <script src="/shared/mock-shell.js"></script>
+    <script>
+      (function () {
+        const tbody = document.getElementById("cart-table-body");
+        const emptyMsg = document.getElementById("empty-cart-message");
+        const totalRow = document.getElementById("cart-total-row");
+        const totalAmount = document.getElementById("cart-total-amount");
+        const checkoutLink = document.getElementById("checkout-link");
+        if (!tbody) return;
+
+        function fmt(n) {
+          return n.toFixed(2);
+        }
+
+        function render() {
+          const items = window.mockStore.cart.read();
+          tbody.innerHTML = "";
+          if (!items.length) {
+            if (emptyMsg) emptyMsg.hidden = false;
+            if (totalRow) totalRow.hidden = true;
+            if (totalAmount) totalAmount.textContent = "0.00";
+            if (checkoutLink) checkoutLink.setAttribute("aria-disabled", "true");
+            return;
+          }
+          if (emptyMsg) emptyMsg.hidden = true;
+          if (totalRow) totalRow.hidden = false;
+          if (checkoutLink) checkoutLink.removeAttribute("aria-disabled");
+          let total = 0;
+          for (const line of items) {
+            const subtotal = (Number(line.price) || 0) * (Number(line.qty) || 0);
+            total += subtotal;
+            const tr = document.createElement("tr");
+            tr.setAttribute("data-product-slug", line.slug);
+            tr.innerHTML =
+              `<td>${escapeHtml(line.name)}</td>` +
+              `<td>£${fmt(Number(line.price))}</td>` +
+              `<td>` +
+              `<span class="qty-stepper" data-pom="components/widgets/quantityStepper">` +
+              `<button type="button" class="qty-decrement" aria-label="Decrease quantity of ${escapeHtml(line.name)}">&minus;</button>` +
+              `<span class="qty-value" data-testid="qty-value">${Number(line.qty) || 0}</span>` +
+              `<button type="button" class="qty-increment" aria-label="Increase quantity of ${escapeHtml(line.name)}">+</button>` +
+              `</span>` +
+              `</td>` +
+              `<td data-testid="cart-cell-subtotal">£${fmt(subtotal)}</td>` +
+              `<td><button type="button" class="cart-remove-btn" aria-label="Remove ${escapeHtml(line.name)}">Remove</button></td>`;
+            tbody.appendChild(tr);
+          }
+          if (totalAmount) totalAmount.textContent = fmt(total);
+        }
+
+        function escapeHtml(s) {
+          return String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+        }
+
+        tbody.addEventListener("click", (e) => {
+          const tr = e.target.closest("tr[data-product-slug]");
+          if (!tr) return;
+          const slug = tr.getAttribute("data-product-slug");
+          if (e.target.classList.contains("qty-increment")) {
+            const items = window.mockStore.cart.read();
+            const line = items.find((l) => l.slug === slug);
+            if (line) window.mockStore.cart.setQty(slug, (Number(line.qty) || 0) + 1);
+          } else if (e.target.classList.contains("qty-decrement")) {
+            const items = window.mockStore.cart.read();
+            const line = items.find((l) => l.slug === slug);
+            if (line) window.mockStore.cart.setQty(slug, (Number(line.qty) || 0) - 1);
+          } else if (e.target.classList.contains("cart-remove-btn")) {
+            window.mockStore.cart.remove(slug);
+          }
+        });
+
+        window.addEventListener("mock-store:cart-changed", render);
+        render();
+      })();
+    </script>
+  </body>
+</html>

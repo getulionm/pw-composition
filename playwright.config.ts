@@ -1,7 +1,7 @@
 import { defineConfig } from "@playwright/test";
 
 const MOCK_PORT = Number(process.env.MOCK_PORT ?? 4173);
-const baseURL = `http://127.0.0.1:${MOCK_PORT}/control-center/`;
+const baseURL = `http://127.0.0.1:${MOCK_PORT}/`;
 
 export default defineConfig({
   testDir: "./tests",

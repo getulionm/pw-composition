@@ -1,5 +1,5 @@
 {
-  "$comment": "tierColors + dataPomToTier: page | componentOuter | componentInner. Markers: pages/*, components/shell/*, components/widgets/*. POM inspector: route <main data-pom-composition=\"…\"> lists composed widgets under PAGE only.",
+  "$comment": "Blue = shell, purple = page, green = widgets. <main data-pom-composition> lists widgets the page composes (inspector Page tree).",
   "tierColors": {
     "page": {
       "outline": "#6d28d9",
@@ -18,15 +18,20 @@
     }
   },
   "dataPomToTier": {
-    "components/shell/masthead": "componentOuter",
-    "components/shell/navigationDrawer": "componentOuter",
+    "components/shell/header": "componentOuter",
+    "components/shell/navDrawer": "componentOuter",
+    "components/shell/toast": "componentOuter",
     "components/widgets/table": "componentInner",
     "components/widgets/searchBox": "componentInner",
     "components/widgets/modal": "componentInner",
-    "pages/controlCenter.home": "page",
-    "pages/controlCenter.records": "page",
-    "pages/controlCenter.recordDetails": "page",
-    "pages/controlCenter.createTool": "page",
-    "pages/controlCenter.viewTools": "page"
+    "components/widgets/quantityStepper": "componentInner",
+    "components/widgets/featuredOffers": "componentInner",
+    "components/widgets/productCard": "componentInner",
+    "pages/store.home": "page",
+    "pages/store.catalog": "page",
+    "pages/store.product-detail": "page",
+    "pages/store.cart": "page",
+    "pages/store.checkout": "page",
+    "pages/store.order-confirmation": "page"
   }
 }

@@ -1,23 +1,202 @@
 /**
- * Control-center mock shell: Tools menu chevrons, user dropdown, nav drawer < >.
- * Expects ids: tools-btn, tools-panel, user-menu-btn, user-dropdown, collapse-menu-btn, side-nav, app-layout
+ * Mock-store shell:
+ *  - membership select (MEMBER / GUEST) drives body[data-membership]
+ *  - cart badge synced from localStorage `mock-store-cart`
+ *  - toast helper exposed as window.mockStore.toast(message)
+ *  - shared drawer toggle, user menu, POM inspector (unchanged in spirit)
+ *
+ * Expected DOM ids: membership-select, user-menu-btn, user-dropdown,
+ * cart-badge, toast-root, collapse-menu-btn, side-nav, app-layout.
  */
 (function initMockShell() {
-  const toolsBtn = document.getElementById("tools-btn");
-  const toolsPanel = document.getElementById("tools-panel");
-  const toolsChev = document.querySelector("#tools-btn .tools-chev");
+  const CART_KEY = "mock-store-cart";
+  const MEMBERSHIP_KEY = "mock-store-membership";
 
-  function setToolsChev(open) {
-    if (toolsChev) toolsChev.textContent = open ? "▴" : "▾";
+  function safeRead(key) {
+    try {
+      return localStorage.getItem(key);
+    } catch {
+      return null;
+    }
   }
 
-  if (toolsBtn && toolsPanel) {
-    setToolsChev(!toolsPanel.hidden);
-    toolsBtn.addEventListener("click", () => {
-      toolsPanel.hidden = !toolsPanel.hidden;
-      const isOpen = !toolsPanel.hidden;
-      toolsBtn.setAttribute("aria-expanded", String(isOpen));
-      setToolsChev(isOpen);
+  function safeWrite(key, value) {
+    try {
+      if (value === null || value === undefined) {
+        localStorage.removeItem(key);
+      } else {
+        localStorage.setItem(key, value);
+      }
+    } catch {
+      /* ignore */
+    }
+  }
+
+  function readCart() {
+    try {
+      const raw = safeRead(CART_KEY);
+      if (!raw) return [];
+      const parsed = JSON.parse(raw);
+      return Array.isArray(parsed) ? parsed : [];
+    } catch {
+      return [];
+    }
+  }
+
+  function writeCart(items) {
+    safeWrite(CART_KEY, JSON.stringify(items));
+    window.dispatchEvent(new CustomEvent("mock-store:cart-changed", { detail: items }));
+  }
+
+  function cartCount(items) {
+    return (items || readCart()).reduce((n, line) => n + (Number(line.qty) || 0), 0);
+  }
+
+  const cart = {
+    read: readCart,
+    write: writeCart,
+    count: () => cartCount(),
+    add(item) {
+      const items = readCart();
+      const existing = items.find((line) => line.slug === item.slug);
+      if (existing) {
+        existing.qty = (Number(existing.qty) || 0) + (Number(item.qty) || 1);
+      } else {
+        items.push({
+          slug: String(item.slug),
+          name: String(item.name),
+          price: Number(item.price),
+          qty: Number(item.qty) || 1,
+        });
+      }
+      writeCart(items);
+    },
+    setQty(slug, qty) {
+      const items = readCart();
+      const line = items.find((l) => l.slug === slug);
+      if (!line) return;
+      const next = Math.max(0, Number(qty) || 0);
+      if (next === 0) {
+        writeCart(items.filter((l) => l.slug !== slug));
+        return;
+      }
+      line.qty = next;
+      writeCart(items);
+    },
+    remove(slug) {
+      writeCart(readCart().filter((l) => l.slug !== slug));
+    },
+    clear() {
+      writeCart([]);
+    },
+  };
+
+  function toast(message, opts) {
+    const root = document.getElementById("toast-root");
+    if (!root) return;
+    const node = document.createElement("div");
+    node.className = "toast";
+    node.setAttribute("role", "status");
+    node.textContent = String(message);
+    root.appendChild(node);
+    const timeout = (opts && opts.timeout) ?? 3000;
+    if (timeout > 0) {
+      setTimeout(() => {
+        if (node.parentNode === root) root.removeChild(node);
+      }, timeout);
+    }
+  }
+
+  const PRODUCT_CATALOG = {
+    "acme-widget": { name: "Acme Widget", full: 10, member: 5 },
+    "super-gizmo": { name: "Super Gizmo", full: 6, member: 3 },
+  };
+
+  function formatPounds(amount) {
+    return `£${amount}`;
+  }
+
+  function currentMembership() {
+    return document.body.getAttribute("data-membership") || "MEMBER";
+  }
+
+  function activeUnitPrice(slug) {
+    const p = PRODUCT_CATALOG[slug];
+    if (!p) return 0;
+    return currentMembership() === "MEMBER" ? p.member : p.full;
+  }
+
+  function renderPriceHost(host, slug) {
+    const p = PRODUCT_CATALOG[slug];
+    if (!p || !host) return;
+    const full = formatPounds(p.full);
+    const member = formatPounds(p.member);
+    if (currentMembership() === "MEMBER") {
+      host.innerHTML =
+        `<span class="price-member-display">` +
+        `<span class="price-was"><s>${full}</s></span> ` +
+        `<span class="price-now">${member}</span></span>`;
+    } else {
+      host.textContent = full;
+    }
+  }
+
+  function syncCatalogPricing() {
+    document.querySelectorAll("td.catalog-price-cell[data-product-slug]").forEach((cell) => {
+      renderPriceHost(cell, cell.getAttribute("data-product-slug"));
+    });
+  }
+
+  function syncProductDetailPricing() {
+    const main = document.querySelector("main[data-product-slug]");
+    if (!main) return;
+    const slug = main.getAttribute("data-product-slug");
+    const host = main.querySelector(".product-price");
+    renderPriceHost(host, slug);
+    const addBtn = main.querySelector("#add-to-cart-btn");
+    if (addBtn) addBtn.dataset.productPrice = String(activeUnitPrice(slug));
+  }
+
+  function syncFeaturedCardPricing() {
+    document.querySelectorAll(".featured-card[data-product-slug]").forEach((card) => {
+      const slug = card.getAttribute("data-product-slug");
+      const host = card.querySelector(".featured-card__price");
+      renderPriceHost(host, slug);
+    });
+  }
+
+  function syncProductPricing() {
+    syncCatalogPricing();
+    syncProductDetailPricing();
+    syncFeaturedCardPricing();
+  }
+
+  window.mockStore = {
+    cart,
+    toast,
+    PRODUCT_CATALOG,
+    formatPounds,
+    activeUnitPrice,
+    syncProductPricing,
+  };
+
+  const collapseBtn = document.getElementById("collapse-menu-btn");
+  const sideNav = document.getElementById("side-nav");
+  const layout = document.getElementById("app-layout");
+  const drawerChev = document.querySelector("#collapse-menu-btn .drawer-chev");
+
+  function setDrawerUi(collapsed) {
+    if (!collapseBtn || !layout) return;
+    collapseBtn.setAttribute("aria-expanded", String(!collapsed));
+    collapseBtn.setAttribute("aria-label", collapsed ? "Expand menu" : "Collapse menu");
+    if (drawerChev) drawerChev.textContent = collapsed ? ">" : "<";
+  }
+
+  if (collapseBtn && sideNav && layout) {
+    setDrawerUi(layout.classList.contains("nav-collapsed"));
+    collapseBtn.addEventListener("click", () => {
+      layout.classList.toggle("nav-collapsed");
+      setDrawerUi(layout.classList.contains("nav-collapsed"));
     });
   }
 
@@ -41,109 +220,87 @@
     userDrop.addEventListener("click", (e) => e.stopPropagation());
   }
 
-  const collapseBtn = document.getElementById("collapse-menu-btn");
-  const sideNav = document.getElementById("side-nav");
-  const layout = document.getElementById("app-layout");
-  const drawerChev = document.querySelector("#collapse-menu-btn .drawer-chev");
-
-  function setDrawerUi(collapsed) {
-    if (!collapseBtn || !layout) return;
-    collapseBtn.setAttribute("aria-expanded", String(!collapsed));
-    collapseBtn.setAttribute("aria-label", collapsed ? "Expand menu" : "Collapse menu");
-    if (drawerChev) drawerChev.textContent = collapsed ? ">" : "<";
-  }
-
-  if (collapseBtn && sideNav && layout) {
-    setDrawerUi(layout.classList.contains("nav-collapsed"));
-    collapseBtn.addEventListener("click", () => {
-      layout.classList.toggle("nav-collapsed");
-      setDrawerUi(layout.classList.contains("nav-collapsed"));
-    });
-  }
-
-  function applyWorkspaceToolsNav() {
-    const ws = document.body.getAttribute("data-workspace") || "ADMIN";
-    document.querySelectorAll("a[data-nav='create-tool']").forEach((a) => {
-      const row = a.closest(".tools-nav-row--create");
-      const lock = row && row.querySelector(".create-tool-lock-icon");
-      if (ws === "USER") {
-        a.setAttribute("aria-disabled", "true");
-        a.classList.add("nav-link-locked");
-        if (lock) {
-          lock.hidden = false;
-          lock.removeAttribute("aria-hidden");
+  function applyMembershipLocks() {
+    const m = document.body.getAttribute("data-membership") || "MEMBER";
+    document.querySelectorAll("[data-membership-lock]").forEach((el) => {
+      const lockEl = el.parentElement?.querySelector(".membership-lock-icon");
+      if (m === "GUEST") {
+        el.setAttribute("aria-disabled", "true");
+        el.classList.add("nav-link-locked");
+        if (el.tagName === "BUTTON" || el.tagName === "INPUT") el.setAttribute("disabled", "");
+        if (lockEl) {
+          lockEl.hidden = false;
+          lockEl.removeAttribute("aria-hidden");
         }
       } else {
-        a.removeAttribute("aria-disabled");
-        a.classList.remove("nav-link-locked");
-        if (lock) {
-          lock.hidden = true;
-          lock.setAttribute("aria-hidden", "true");
+        el.removeAttribute("aria-disabled");
+        el.classList.remove("nav-link-locked");
+        if (el.tagName === "BUTTON" || el.tagName === "INPUT") el.removeAttribute("disabled");
+        if (lockEl) {
+          lockEl.hidden = true;
+          lockEl.setAttribute("aria-hidden", "true");
         }
       }
     });
   }
 
-  function syncWelcomeWorkspace() {
-    const el = document.getElementById("welcome-workspace");
-    if (!el) return;
-    const ws = document.body.getAttribute("data-workspace") || "ADMIN";
-    el.textContent = ws;
-  }
-
   function syncUserMenuButtonLabel() {
     const btn = document.getElementById("user-menu-btn");
     if (!btn) return;
-    const ws = document.body.getAttribute("data-workspace") || "ADMIN";
-    btn.textContent = ws === "USER" ? "User menu" : "Admin menu";
+    const m = document.body.getAttribute("data-membership") || "MEMBER";
+    btn.textContent = m === "GUEST" ? "Guest menu" : "Member menu";
   }
 
-  const WORKSPACE_KEY = "pw-mock-workspace";
-
-  function readStoredWorkspace() {
-    try {
-      const v = localStorage.getItem(WORKSPACE_KEY);
-      return v === "ADMIN" || v === "USER" ? v : null;
-    } catch {
-      return null;
-    }
+  function syncMembershipGreetings() {
+    const m = document.body.getAttribute("data-membership") || "MEMBER";
+    document.querySelectorAll("[data-membership-greeting]").forEach((el) => {
+      el.textContent = m;
+    });
   }
 
-  function writeStoredWorkspace(value) {
-    try {
-      localStorage.setItem(WORKSPACE_KEY, value);
-    } catch {
-      /* ignore */
-    }
-  }
-
-  const workspaceSelect = document.getElementById("workspace-select");
-  if (workspaceSelect) {
-    const stored = readStoredWorkspace();
-    if (stored) {
-      workspaceSelect.value = stored;
+  const membershipSelect = document.getElementById("membership-select");
+  if (membershipSelect) {
+    const stored = safeRead(MEMBERSHIP_KEY);
+    if (stored === "MEMBER" || stored === "GUEST") {
+      membershipSelect.value = stored;
     }
     const sync = () => {
-      const v = workspaceSelect.value;
-      document.body.setAttribute("data-workspace", v);
-      writeStoredWorkspace(v);
-      syncWelcomeWorkspace();
+      const v = membershipSelect.value;
+      document.body.setAttribute("data-membership", v);
+      safeWrite(MEMBERSHIP_KEY, v);
       syncUserMenuButtonLabel();
-      applyWorkspaceToolsNav();
+      syncMembershipGreetings();
+      applyMembershipLocks();
+      syncProductPricing();
     };
     sync();
-    workspaceSelect.addEventListener("change", sync);
+    membershipSelect.addEventListener("change", sync);
   } else {
-    document.body.setAttribute("data-workspace", "ADMIN");
-    applyWorkspaceToolsNav();
-    syncWelcomeWorkspace();
+    document.body.setAttribute("data-membership", "MEMBER");
     syncUserMenuButtonLabel();
+    syncMembershipGreetings();
+    applyMembershipLocks();
+    syncProductPricing();
   }
 
-  /** POM outline toggle: floating widget + localStorage `pw-pom-visual` === "1" */
+  function renderCartBadge() {
+    const badge = document.getElementById("cart-badge");
+    if (!badge) return;
+    const n = cart.count();
+    badge.textContent = String(n);
+    badge.setAttribute("data-cart-count", String(n));
+    badge.classList.toggle("cart-badge--empty", n === 0);
+  }
+
+  renderCartBadge();
+  window.addEventListener("mock-store:cart-changed", renderCartBadge);
+  window.addEventListener("storage", (e) => {
+    if (e.key === CART_KEY) renderCartBadge();
+  });
+
+  /** POM inspector toggle + outlines + listing widget (unchanged from earlier shell). */
   const POM_VISUAL_KEY = "pw-pom-visual";
 
-  /** URL feature flag: `?pom=1` (or `pomOutlines=1` / `pomVisual=1`) turns outlines on; `?pom=0` turns them off. */
   function applyPomOutlineQueryFlag() {
     try {
       const sp = new URLSearchParams(location.search);
@@ -159,25 +316,29 @@
   }
   applyPomOutlineQueryFlag();
 
-  /** Default matches `pom-outline-config.json`; fetch overrides. */
   const DEFAULT_POM_OUTLINE_CONFIG = {
     tierColors: {
       page: { outline: "#6d28d9", labelBackground: "#4c1d95", labelText: "#f5f3ff" },
       componentOuter: { outline: "#1d4ed8", labelBackground: "#1e3a8a", labelText: "#eff6ff" },
-      componentInner: { outline: "#047857", labelBackground: "#064e3b", labelText: "#ecfdf5" }
+      componentInner: { outline: "#047857", labelBackground: "#064e3b", labelText: "#ecfdf5" },
     },
     dataPomToTier: {
-      "components/shell/masthead": "componentOuter",
-      "components/shell/navigationDrawer": "componentOuter",
+      "components/shell/header": "componentOuter",
+      "components/shell/navDrawer": "componentOuter",
+      "components/shell/toast": "componentOuter",
       "components/widgets/table": "componentInner",
       "components/widgets/searchBox": "componentInner",
       "components/widgets/modal": "componentInner",
-      "pages/controlCenter.home": "page",
-      "pages/controlCenter.records": "page",
-      "pages/controlCenter.recordDetails": "page",
-      "pages/controlCenter.createTool": "page",
-      "pages/controlCenter.viewTools": "page"
-    }
+      "components/widgets/quantityStepper": "componentInner",
+    "components/widgets/featuredOffers": "componentInner",
+    "components/widgets/productCard": "componentInner",
+      "pages/store.home": "page",
+      "pages/store.catalog": "page",
+      "pages/store.product-detail": "page",
+      "pages/store.cart": "page",
+      "pages/store.checkout": "page",
+      "pages/store.order-confirmation": "page",
+    },
   };
 
   function mergePomOutlineConfig(base, over) {
@@ -250,12 +411,11 @@
       if (on) localStorage.setItem(POM_VISUAL_KEY, "1");
       else localStorage.removeItem(POM_VISUAL_KEY);
     } catch {
-      /* private mode / denied */
+      /* ignore */
     }
   }
 
   const POM_PANEL_KEY = "pw-pom-panel-open";
-
   function readPanelOpen() {
     try {
       return localStorage.getItem(POM_PANEL_KEY) === "1";
@@ -263,7 +423,6 @@
       return false;
     }
   }
-
   function writePanelOpen(open) {
     try {
       if (open) localStorage.setItem(POM_PANEL_KEY, "1");
@@ -273,7 +432,14 @@
     }
   }
 
-  function isPomRegionVisible(el) {
+  /**
+   * @param {Element} el
+   * @param {{ ignoreZeroBoundingBox?: boolean }} [opts]
+   *   Shell hosts like `#toast-root` are real `data-pom` regions but often have
+   *   zero layout size until a toast is shown; they should still appear in the
+   *   inspector's "Components (shell)" list (outlines toggle does not affect DOM).
+   */
+  function isPomRegionVisible(el, opts) {
     if (!el || !el.isConnected) return false;
     if (el.closest("[hidden]")) return false;
     if (typeof el.checkVisibility === "function") {
@@ -285,88 +451,84 @@
     }
     const st = getComputedStyle(el);
     if (st.display === "none" || st.visibility === "hidden" || st.opacity === "0") return false;
-    const r = el.getBoundingClientRect();
-    if (r.width < 1 && r.height < 1) return false;
+    if (!opts || !opts.ignoreZeroBoundingBox) {
+      const r = el.getBoundingClientRect();
+      if (r.width < 1 && r.height < 1) return false;
+    }
     return true;
   }
 
-  /**
-   * `data-pom-composition` on route `<main>` drives the PAGE section in the POM inspector (green dashed outlines unchanged).
-   * Inner `data-pom` markers listed there are omitted from "Widgets (green)" so overlays/non-composed widgets still stand out.
-   */
-  var COMPOSITION_ROW_META = {
+  const COMPOSITION_ROW_META = {
     "components/widgets/searchBox": { display: "searchBox", tag: "WIDGET", variant: "widget" },
     "components/widgets/table": { display: "table", tag: "WIDGET", variant: "widget" },
+    "components/widgets/quantityStepper": { display: "quantityStepper", tag: "WIDGET", variant: "widget" },
+    "components/widgets/featuredOffers": { display: "featuredOffers", tag: "WIDGET", variant: "widget" },
+    "components/widgets/productCard": { display: "productCard", tag: "WIDGET", variant: "widget" },
+    "components/widgets/modal": { display: "modal", tag: "WIDGET", variant: "widget" },
   };
-
   function metaForCompositionField(field) {
-    var known = COMPOSITION_ROW_META[field];
-    if (known) return known;
-    return { display: field, tag: "WIDGET", variant: "widget" };
+    return COMPOSITION_ROW_META[field] || { display: field, tag: "WIDGET", variant: "widget" };
+  }
+
+  /** Whether a `data-pom` marker is visible on screen (modal open, toast showing, etc.). */
+  function isPomMarkerVisible(pomField) {
+    const field = (pomField || "").trim();
+    if (!field) return false;
+    if (field === "components/shell/toast") {
+      const root = document.getElementById("toast-root");
+      if (!root) return false;
+      const toasts = root.querySelectorAll(".toast");
+      for (const t of toasts) {
+        if (isPomRegionVisible(t)) return true;
+      }
+      return false;
+    }
+    const nodes = document.querySelectorAll(`[data-pom="${field}"]`);
+    if (!nodes.length) return false;
+    for (const el of nodes) {
+      const tier = el.getAttribute("data-pom-tier");
+      if (isPomRegionVisible(el, { ignoreZeroBoundingBox: tier === "componentOuter" })) return true;
+    }
+    return false;
   }
 
   function parseCompositionAttr(el) {
-    const raw = el.getAttribute("data-pom-composition") || "";
-    return raw
+    return (el.getAttribute("data-pom-composition") || "")
       .split(/[\s,]+/)
       .map((s) => s.trim())
       .filter(Boolean);
   }
 
-  /** Visible `data-pom` regions with tier componentOuter (masthead, drawer, …). */
-  function collectVisibleShellComponentNames() {
+  /** All shell `componentOuter` markers on this route (listed even when hidden). */
+  function collectShellComponentNames() {
     const outer = new Set();
-    document.querySelectorAll("[data-pom]").forEach((el) => {
-      if (!isPomRegionVisible(el)) return;
+    document.querySelectorAll('[data-pom-tier="componentOuter"]').forEach((el) => {
       const name = (el.getAttribute("data-pom") || "").trim();
-      if (!name) return;
-      if (el.getAttribute("data-pom-tier") === "componentOuter") outer.add(name);
+      if (name.startsWith("components/shell/")) outer.add(name);
     });
     return Array.from(outer).sort((a, b) => a.localeCompare(b));
   }
 
-  /**
-   * `data-pom` class names already listed under PAGE via `data-pom-composition` on a visible route `<main>`.
-   * Those stay out of "Widgets (green)" — e.g. modal is not in composition, so it only appears there.
-   */
-  function collectInnerPomNamesFromVisiblePageComposition() {
-    const names = new Set();
-    document.querySelectorAll('[data-pom-tier="page"]').forEach((el) => {
-      if (!isPomRegionVisible(el)) return;
-      parseCompositionAttr(el).forEach((field) => {
-        names.add(metaForCompositionField(field).display);
-      });
-    });
-    return names;
-  }
-
-  /** Visible `data-pom` regions with tier componentInner, excluding names already under PAGE composition. */
-  function collectVisibleInnerWidgetNames() {
-    const inner = new Set();
-    const composed = collectInnerPomNamesFromVisiblePageComposition();
-    document.querySelectorAll("[data-pom]").forEach((el) => {
-      if (!isPomRegionVisible(el)) return;
-      const name = (el.getAttribute("data-pom") || "").trim();
-      if (!name) return;
-      if (el.getAttribute("data-pom-tier") !== "componentInner") return;
-      if (composed.has(name)) return;
-      inner.add(name);
-    });
-    return Array.from(inner).sort((a, b) => a.localeCompare(b));
-  }
-
-  function fillNameList(ul, names) {
+  function fillShellComponentList(ul, names) {
     ul.textContent = "";
     if (!names.length) {
       const li = document.createElement("li");
       li.className = "pw-pom-visual-names__empty";
-      li.textContent = "(none visible)";
+      li.textContent = "(none on page)";
       ul.appendChild(li);
       return;
     }
     names.forEach((n) => {
       const li = document.createElement("li");
-      li.textContent = n;
+      li.className = "pw-pom-visual-shell-row";
+      const nameEl = document.createElement("span");
+      nameEl.className = "pw-pom-visual-shell-row__name";
+      nameEl.textContent = n;
+      const stateEl = document.createElement("span");
+      stateEl.className = "pw-pom-visual-tree__state";
+      stateEl.textContent = isPomMarkerVisible(n) ? "visible" : "hidden";
+      li.appendChild(nameEl);
+      li.appendChild(stateEl);
       ul.appendChild(li);
     });
   }
@@ -396,24 +558,31 @@
       nameEl.textContent = name;
       li.appendChild(nameEl);
       if (fields.length) {
-        const sub = document.createElement("ul");
-        sub.className = "pw-pom-visual-composition";
+        const tree = document.createElement("div");
+        tree.className = "pw-pom-visual-tree";
         fields.forEach((f) => {
           const meta = metaForCompositionField(f);
-          const cli = document.createElement("li");
-          cli.className =
-            "pw-pom-visual-composition-row pw-pom-visual-composition-row--" + meta.variant;
-          const lab = document.createElement("span");
-          lab.className = "pw-pom-visual-composition-row__label";
-          lab.textContent = meta.display;
+          const row = document.createElement("div");
+          row.className = "pw-pom-visual-tree__row";
+          const pipe = document.createElement("span");
+          pipe.className = "pw-pom-visual-tree__pipe";
+          pipe.textContent = "│";
+          const body = document.createElement("span");
+          body.className = "pw-pom-visual-tree__body";
+          body.textContent = meta.display;
+          const stateEl = document.createElement("span");
+          stateEl.className = "pw-pom-visual-tree__state";
+          stateEl.textContent = isPomMarkerVisible(f) ? "visible" : "hidden";
           const tagEl = document.createElement("span");
-          tagEl.className = "pw-pom-visual-composition-row__tag";
-          tagEl.textContent = "(" + meta.tag + ")";
-          cli.appendChild(lab);
-          cli.appendChild(tagEl);
-          sub.appendChild(cli);
+          tagEl.className = "pw-pom-visual-tree__tag";
+          tagEl.textContent = meta.tag;
+          row.appendChild(pipe);
+          row.appendChild(body);
+          row.appendChild(stateEl);
+          row.appendChild(tagEl);
+          tree.appendChild(row);
         });
-        li.appendChild(sub);
+        li.appendChild(tree);
       }
       pageUl.appendChild(li);
     });
@@ -422,11 +591,27 @@
   function renderPomPanelLists() {
     const pageUl = document.getElementById("pw-pom-visual-list-page");
     const outerUl = document.getElementById("pw-pom-visual-list-outer");
-    const innerUl = document.getElementById("pw-pom-visual-list-inner");
-    if (!pageUl || !outerUl || !innerUl) return;
+    if (!pageUl || !outerUl) return;
+    fillShellComponentList(outerUl, collectShellComponentNames());
     renderPageSectionList(pageUl);
-    fillNameList(outerUl, collectVisibleShellComponentNames());
-    fillNameList(innerUl, collectVisibleInnerWidgetNames());
+    fitPomPanelSize();
+  }
+
+  /** Size panel to content so toggling outlines does not leave a stray scrollbar. */
+  function fitPomPanelSize() {
+    const panel = document.getElementById("pw-pom-visual-panel");
+    if (!panel || panel.hidden) return;
+    panel.style.height = "auto";
+    panel.style.maxHeight = "none";
+    panel.style.overflowY = "hidden";
+    const natural = panel.scrollHeight;
+    const cap = Math.min(560, Math.round(window.innerHeight * 0.58));
+    if (natural <= cap) {
+      panel.style.maxHeight = natural + 4 + "px";
+    } else {
+      panel.style.maxHeight = cap + "px";
+      panel.style.overflowY = "auto";
+    }
   }
 
   function applyPanelOpenUi() {
@@ -440,7 +625,10 @@
     fab.classList.toggle("pw-pom-visual-widget--active", open);
     fab.title = open ? "Close POM inspector" : "Open POM inspector";
     fab.setAttribute("aria-label", open ? "Close POM inspector" : "Open POM inspector");
-    if (open) renderPomPanelLists();
+    if (open) {
+      renderPomPanelLists();
+      fitPomPanelSize();
+    }
   }
 
   let pomListRefreshTimer = null;
@@ -448,7 +636,10 @@
     const panel = document.getElementById("pw-pom-visual-panel");
     if (!panel || panel.hidden) return;
     clearTimeout(pomListRefreshTimer);
-    pomListRefreshTimer = setTimeout(() => renderPomPanelLists(), 100);
+    pomListRefreshTimer = setTimeout(() => {
+      renderPomPanelLists();
+      fitPomPanelSize();
+    }, 100);
   }
 
   function applyPomVisualFromStorage() {
@@ -458,15 +649,14 @@
     const outlinesToggle = document.getElementById("pw-pom-visual-outlines-toggle");
     if (outlinesToggle) outlinesToggle.checked = on;
     refreshPomOutlineTiers();
+    fitPomPanelSize();
   }
 
   function mountPomVisualWidget() {
     if (document.getElementById("pw-pom-visual-root")) return;
-
     const root = document.createElement("div");
     root.id = "pw-pom-visual-root";
     root.className = "pw-pom-visual-root";
-
     const panel = document.createElement("div");
     panel.id = "pw-pom-visual-panel";
     panel.className = "pw-pom-visual-panel";
@@ -509,10 +699,8 @@
       wrap.appendChild(ul);
       panel.appendChild(wrap);
     }
-
+    addSection("outer", "Shell (components)", "pw-pom-visual-list-outer");
     addSection("page", "Page", "pw-pom-visual-list-page");
-    addSection("outer", "Components (shell)", "pw-pom-visual-list-outer");
-    addSection("inner", "Widgets (green)", "pw-pom-visual-list-inner");
 
     const fab = document.createElement("button");
     fab.type = "button";
@@ -537,7 +725,6 @@
     root.appendChild(panel);
     root.appendChild(fab);
     document.body.appendChild(root);
-
     applyPanelOpenUi();
 
     try {
@@ -551,8 +738,10 @@
     } catch {
       /* ignore */
     }
-    window.addEventListener("resize", schedulePomPanelListRefresh);
-
+    window.addEventListener("resize", () => {
+      schedulePomPanelListRefresh();
+      fitPomPanelSize();
+    });
     document.addEventListener("keydown", (e) => {
       if (e.key === "Escape" && readPanelOpen()) {
         writePanelOpen(false);
@@ -566,5 +755,9 @@
   window.addEventListener("pageshow", () => {
     applyPomVisualFromStorage();
     applyPanelOpenUi();
+    renderCartBadge();
+    syncProductPricing();
   });
+
+  syncProductPricing();
 })();

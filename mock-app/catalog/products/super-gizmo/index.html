@@ -1,0 +1,83 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <title>Super Gizmo</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <link rel="stylesheet" href="/shared/mock-shell.css" />
+  </head>
+  <body>
+    <header class="shell-header" role="banner" data-pom="components/shell/header">
+      <div class="shell-brand">
+        <img src="/shared/mock-logo.svg" width="32" height="32" alt="" />
+        <span class="shell-title">MOCK STORE</span>
+      </div>
+      <div class="shell-membership">
+        <label for="membership-select" class="sr-only">Membership</label>
+        <select id="membership-select" aria-label="Membership">
+          <option value="MEMBER" selected>MEMBER</option>
+          <option value="GUEST">GUEST</option>
+        </select>
+      </div>
+      <div class="shell-header-spacer"></div>
+      <a class="shell-cart-link" href="/cart/" aria-label="Cart">
+        Cart <span id="cart-badge" class="cart-badge" aria-label="items in cart" data-cart-count="0">0</span>
+      </a>
+      <div class="shell-user-wrap">
+        <button type="button" id="user-menu-btn" aria-expanded="false" aria-haspopup="true">Member menu</button>
+        <div id="user-dropdown" class="user-dropdown" hidden role="menu">
+          <div class="user-name" role="menuitem">Sam Patel</div>
+        </div>
+      </div>
+    </header>
+    <div class="layout" id="app-layout">
+      <div class="nav-drawer" data-pom="components/shell/navDrawer">
+        <nav id="side-nav" class="side-nav" aria-label="Main">
+          <p><a href="/">Home</a></p>
+          <p><a href="/catalog/">Catalog</a></p>
+          <p><a href="/cart/">Cart</a></p>
+        </nav>
+        <button type="button" id="collapse-menu-btn" class="nav-rail-toggle" aria-expanded="true" aria-label="Collapse menu">
+          <span class="drawer-chev" aria-hidden="true">&lt;</span>
+          <span class="rail-label">Collapse menu</span>
+        </button>
+      </div>
+      <div class="main-wrap">
+        <main data-pom="pages/store.product-detail" data-product-slug="super-gizmo">
+          <p><a href="/catalog/">&larr; Back to catalog</a></p>
+          <h1>Super Gizmo</h1>
+          <p class="product-price" data-testid="product-price">£6</p>
+          <p class="product-description">The deluxe gizmo for power users.</p>
+          <p>
+            <button
+              id="add-to-cart-btn"
+              type="button"
+              data-product-slug="super-gizmo"
+              data-product-name="Super Gizmo"
+            >
+              Add to cart
+            </button>
+          </p>
+        </main>
+      </div>
+    </div>
+    <div id="toast-root" class="toast-root" aria-live="polite" data-pom="components/shell/toast"></div>
+    <script src="/shared/mock-shell.js"></script>
+    <script>
+      (function () {
+        const addBtn = document.getElementById("add-to-cart-btn");
+        if (!addBtn) return;
+        addBtn.addEventListener("click", () => {
+          const slug = addBtn.dataset.productSlug;
+          window.mockStore.cart.add({
+            slug,
+            name: addBtn.dataset.productName,
+            price: window.mockStore.activeUnitPrice(slug),
+            qty: 1,
+          });
+          window.mockStore.toast(`${addBtn.dataset.productName} added to cart`);
+        });
+      })();
+    </script>
+  </body>
+</html>
