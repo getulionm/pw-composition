@@ -1,11 +1,12 @@
 <a id="start-here"></a>
 ## ⭐ Start here
 
-This repo is a small Playwright + TypeScript example — three patterns we can adopt gradually, not a mandate to rewrite everything.
+Mock app + Playwright framework example.  
+This section aim is to present three patterns that can be adopted gradually:
 
 ### 1. Fixtures owned by modules, merged at the root
 
-Each product area keeps its own `support/modules/<feature>/*.fixture.ts` for pages and workflows. [`support/fixtures/app.fixture.ts`](support/fixtures/app.fixture.ts) only merges those slices with `mergeTests`.
+Each product area keeps its own `support/modules/<feature>/*.fixture.ts` for pages and workflows. `[support/fixtures/app.fixture.ts](support/fixtures/app.fixture.ts)` only merges those slices with `mergeTests`.
 
 ```ts
 export const test = mergeTests(usersTest, shellTest, catalogTest, cartTest, checkoutTest);
@@ -13,15 +14,20 @@ export const test = mergeTests(usersTest, shellTest, catalogTest, cartTest, chec
 
 See: [app.fixture.ts](support/fixtures/app.fixture.ts), [catalog.fixture.ts](support/modules/catalog/catalog.fixture.ts)
 
-### 2. Workflows → pages → components
+### 2. Workflows → Pages → Components
 
-The spec describes the journey. A **workflow** coordinates screens inside one module. A **page** is one route. **Components** are reusable UI (table, header, search).
+The spec describes the journey.
+
+- A **workflow** coordinates screens inside one module.
+- A **page** is 1 view, tipically 1 route.
+- **Components** are reusable UI sections.
 
 ```text
 BrowseCatalogWorkflow → CatalogPage → HeaderComponent, TableComponent, …
 ```
 
-Cross-module journeys compose several workflow fixtures in the spec — not one workflow importing another module. Layer stack: [Layer hierarchy](#layer-hierarchy).
+Complex tests can use multiple workflows in one spec. Workflows should not import each other.  
+Layer stack: [Layer hierarchy](#layer-hierarchy).
 
 See: [browse-catalog.workflow.ts](support/modules/catalog/workflows/browse-catalog.workflow.ts), [catalog.page.ts](support/modules/catalog/pages/catalog.page.ts), [table.component.ts](support/shared/components/table.component.ts)
 
@@ -39,17 +45,16 @@ See: [checkout.bdd.spec.ts](tests/checkout/checkout.bdd.spec.ts), [checkout.purc
 
 ### Walkthrough
 
-1. See: [app.fixture.ts](support/fixtures/app.fixture.ts)
-2. See: [catalog.fixture.ts](support/modules/catalog/catalog.fixture.ts)
-3. See: [browse-catalog.workflow.ts](support/modules/catalog/workflows/browse-catalog.workflow.ts)
-4. See: [catalog.page.ts](support/modules/catalog/pages/catalog.page.ts)
-5. See: [table.component.ts](support/shared/components/table.component.ts)
-6. See: [checkout.purchase.spec.ts](tests/checkout/checkout.purchase.spec.ts)
-7. See: [checkout.bdd.spec.ts](tests/checkout/checkout.bdd.spec.ts)
+1. See: [app.fixture.ts](support/fixtures/app.fixture.ts) → root `mergeTests`
+2. See: [catalog.fixture.ts](support/modules/catalog/catalog.fixture.ts) → module fixture
+3. See: [browse-catalog.workflow.ts](support/modules/catalog/workflows/browse-catalog.workflow.ts) → workflow
+4. See: [catalog.page.ts](support/modules/catalog/pages/catalog.page.ts) → page
+5. See: [table.component.ts](support/shared/components/table.component.ts) → component
+6. See: [checkout.purchase.spec.ts](tests/checkout/checkout.purchase.spec.ts) → complex test (several workflows)
+7. See: [checkout.bdd.spec.ts](tests/checkout/checkout.bdd.spec.ts) → `test.step` narrative
 
 ---
 
-<a id="contents"></a>
 ## Contents
 
 - [⭐ Start here](#start-here)
@@ -71,7 +76,6 @@ See: [checkout.bdd.spec.ts](tests/checkout/checkout.bdd.spec.ts), [checkout.purc
 - [🗂️ Test map](#test-map)
 - [🤝 Tradeoffs](#tradeoffs)
 
-<a id="composition-first-playwright-framework"></a>
 # Composition-first Playwright framework
 
 An example repo for modern Playwright + TypeScript test architecture.
@@ -82,12 +86,11 @@ An example repo for modern Playwright + TypeScript test architecture.
 | **Composition over inheritance**             | Pages and workflows are built by assembling small pieces — not by extending a deep class tree.      |
 | **Modules over folders of files**            | Code is grouped by **product area** (Catalog, Cart…), not by **file type** (all pages in one pile). |
 | **Fixtures composed from per-module slices** | Each team owns a small fixture file; the root **merges** them — no central 500-line fixture.        |
-| **`test.step` instead of Cucumber glue**     | Given/When/Then lives in TypeScript; no feature files or regex step definitions.                    |
+| `**test.step` instead of Cucumber glue**     | Given/When/Then lives in TypeScript; no feature files or regex step definitions.                    |
 
 
 **Two proposals that scale with teams:** (1) **group code by product module** — each area owns its pages, workflows, and `*.fixture.ts` under `support/modules/<name>/`; (2) **merge fixtures at the root** — `app.fixture.ts` only calls `mergeTests(...)`, so teams do not share one giant fixture file. The rest of this README is how those two ideas show up in layers, lint, and specs.
 
-<a id="two-proposals-that-scale-with-teams"></a>
 ## 🧱 Two proposals that scale with teams
 
 ### Proposal 1 — Modules, not “all pages in one folder”
@@ -183,12 +186,10 @@ A module is a **team-owned boundary** in `support/modules/<name>/`:
 
 Layer rules (workflows stay in-module; tests may compose several fixtures) → [Layer hierarchy](#layer-hierarchy) and [Three sizes of test](#three-sizes-of-test).
 
-<a id="general-goal"></a>
 ## 🎯 General Goal
 
 Tests should read like user behavior, not archaeology through inheritance trees. This repo favors **modules**, **composition**, and **TypeScript** orchestration in specs.
 
-<a id="layer-hierarchy"></a>
 ## 🏛️ Layer hierarchy
 
 **How a test run is wired** — modules supply fixture slices; the test uses fixtures (pages and/or workflows), not modules directly:
@@ -237,7 +238,6 @@ flowchart TD
 
 
 
-<a id="composition-over-inheritance"></a>
 ## 🧩 Composition over inheritance
 
 ✖️ Avoid:
@@ -263,7 +263,6 @@ BasePage  (tiny: page meta, marker, gotoPath, expectScreen)
 
 Pages and workflows assemble collaborators in the constructor — no shared subclass beyond `BasePage`.
 
-<a id="module-ownership"></a>
 ## 📦 Module ownership
 
 Each **mock route** has one **owning module**. That module holds the `*Page` for that screen and any **workflow** that only touches those pages. Shell surfaces (header, nav, toast) live in `shell/` and are composed into every page — they are not “owned” by catalog or cart.
@@ -303,7 +302,6 @@ support/modules/cart/       @cart-team
 support/modules/checkout/   @checkout-team
 ```
 
-<a id="fixtures-per-module-composed-at-the-root"></a>
 ## 🔌 Fixtures: per-module, composed at the root
 
 Each `*.fixture.ts` registers that module’s pages and workflows. Root file only merges (`users` first so seeding wraps `page`):
@@ -323,7 +321,6 @@ export { expect } from "@playwright/test";
 
 Adding a new product module is one folder and one line in `mergeTests`. Adding a new fixture is one entry in the owning module's file.
 
-<a id="handling-users"></a>
 ## 👤 Handling users
 
 Every test should make clear **which user the journey starts with**. That is separate from switching membership mid-flow in the UI.
@@ -340,7 +337,6 @@ Every test should make clear **which user the journey starts with**. That is sep
 
 Spec: `[tests/users/handling-users.spec.ts](tests/users/handling-users.spec.ts)`.
 
-<a id="three-sizes-of-test"></a>
 ## 📏 Three sizes of test
 
 Tier = **what fixtures the spec composes**, not step count. **Complex** specs call multiple workflows in one test; each workflow still only wraps pages from its own module.
@@ -353,7 +349,6 @@ Tier = **what fixtures the spec composes**, not step count. **Complex** specs ca
 | Complex | workflows from **2+ modules** | `[checkout.purchase.spec.ts](tests/checkout/checkout.purchase.spec.ts)`          |
 
 
-<a id="test-step-vs-cucumber"></a>
 ## 📖 `test.step` vs Cucumber
 
 Same complex journey with narrative steps — `[checkout.bdd.spec.ts](tests/checkout/checkout.bdd.spec.ts)`:
@@ -378,23 +373,21 @@ await test.step("Given a member is on the store home", async () => {
 
 If business users actively maintain feature files, Cucumber may still be worth its cost. Otherwise `test.step` recovers the narrative without the rest of the framework drag.
 
-<a id="where-to-put-x"></a>
 ## 🗺️ Where to put X
 
 
-| Adding...                                        | Where it lives                                                                                               |
-| ------------------------------------------------ | ------------------------------------------------------------------------------------------------------------ |
+| Adding...                                        | Where it lives                                                                                                                    |
+| ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------- |
 | A new screen (page + mock route)                 | `support/modules/<module>/pages/<name>.page.ts` + `mock-app/<route>/` (same stem — [Locators and screens](#locators-and-screens)) |
-| One screen, route-local behaviour                | New method on a **Page**                                                                                     |
-| A reusable dense UI (table, modal, picker)       | New **shared component** under `support/shared/components/`                                                  |
-| A reusable shell surface (header, drawer, toast) | New **shell component** under `support/modules/shell/components/`                                            |
-| A repeated user journey                          | New **workflow** in the owning module                                                                        |
-| A new feature module                             | New folder under `support/modules/<name>/` + line in `mergeTests`                                            |
-| Starting user / session bootstrap                | `test.use({ user: guestUser })` + `users.fixture.ts` ([Handling users](#handling-users))                  |
-| Journey across modules                           | The **spec** — call multiple workflow fixtures (not one workflow importing another module)                   |
+| One screen, route-local behaviour                | New method on a **Page**                                                                                                          |
+| A reusable dense UI (table, modal, picker)       | New **shared component** under `support/shared/components/`                                                                       |
+| A reusable shell surface (header, drawer, toast) | New **shell component** under `support/modules/shell/components/`                                                                 |
+| A repeated user journey                          | New **workflow** in the owning module                                                                                             |
+| A new feature module                             | New folder under `support/modules/<name>/` + line in `mergeTests`                                                                 |
+| Starting user / session bootstrap                | `test.use({ user: guestUser })` + `users.fixture.ts` ([Handling users](#handling-users))                                          |
+| Journey across modules                           | The **spec** — call multiple workflow fixtures (not one workflow importing another module)                                        |
 
 
-<a id="customizing-the-contract-layer"></a>
 ## ⚙️ Customizing the contract layer
 
 Enforcement is intentionally a **minor suggestion**, not a manifesto. Two ESLint rules in `[eslint.config.mjs](eslint.config.mjs)`:
@@ -406,7 +399,6 @@ Both rules are commented in the config and removable in one edit. An org fork ca
 
 `tests/catalog/catalog-browse.raw.spec.ts` is a deliberate counter-example: same assertion as `catalog-browse.spec.ts`, but with raw `page.locator` calls. The framework does not ban that escape hatch; the page-fixture version is what we recommend.
 
-<a id="locators-and-screens"></a>
 ## 🏷️ Locators and screens
 
 **Locators** — in pages and components, use Playwright’s accessible queries only: `getByRole`, then `getByLabel`, then `getByText`. Pages call component methods; components own any trickier DOM inside the widget.
@@ -440,7 +432,6 @@ mock-app/catalog/index.html  →  /catalog/
 
 New screens and other artifacts: see [Where to put X](#where-to-put-x) above.
 
-<a id="run"></a>
 ## ▶️ Run
 
 - `npm install`
@@ -458,7 +449,6 @@ Other scripts:
 
 `playwright.config.ts` auto-starts `mock-app/` on `http://127.0.0.1:4173/` during test runs.
 
-<a id="pom-inspector"></a>
 ## 🔍 POM inspector
 
 The mock ships with a floating "POM inspector" widget (bottom-right): toggle outlines on/off, see live lists of visible pages, shell components, and widgets, and open **[README](/readme/)** (project docs rendered from this file — not a store page). Configuration lives in `[mock-app/shared/pom-outline-config.json](mock-app/shared/pom-outline-config.json)`.
@@ -488,7 +478,6 @@ export const test = merged.extend({
 
 Selectors and assertions don't change when outlines are on, so a CI screenshot job can flip the flag without touching any spec.
 
-<a id="test-map"></a>
 ## 🗂️ Test map
 
 
@@ -504,7 +493,6 @@ Selectors and assertions don't change when outlines are on, so a CI screenshot j
 | `[tests/users/handling-users.spec.ts](tests/users/handling-users.spec.ts)`             | Medium          | Starting user (`user` fixture) vs mid-journey `membershipWorkflow` |
 
 
-<a id="tradeoffs"></a>
 ## 🤝 Tradeoffs
 
 This layout is a set of **rules**, not convenience suggestions.
@@ -514,7 +502,7 @@ This layout is a set of **rules**, not convenience suggestions.
 | -------------------------------------------------- | ------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------ |
 | **Modules do not import sibling modules**          | Clear CODEOWNERS lines; no cart→catalog→checkout import webs        | A journey that crosses areas is **wired in the test**, not hidden inside one “mega workflow”                                               |
 | **Workflows stay inside their module**             | Each team owns journeys for its screens                             | Complex specs **must** pull several fixtures (`shellWorkflow`, `browseCatalogWorkflow`, `cartWorkflow`, …) — that verbosity is intentional |
-| **One `*Page` class per route, one owning module** | No duplicate page objects or “who maintains `CheckoutPage`?” fights | Shared UI goes in **shell** or **`shared/components`**, not a second copy of a page class                                                  |
+| **One `*Page` class per route, one owning module** | No duplicate page objects or “who maintains `CheckoutPage`?” fights | Shared UI goes in **shell** or `**shared/components`**, not a second copy of a page class                                                  |
 | **Root fixture = `mergeTests` only**               | Adding a team’s surface does not edit everyone else’s fixture file  | New module = new folder + one line in `mergeTests` (a deliberate onboarding step)                                                          |
 
 
