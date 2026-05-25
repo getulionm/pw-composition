@@ -6,7 +6,7 @@ This section aim is to present three patterns that can be adopted gradually:
 
 ### 1. Fixtures owned by modules, merged at the root
 
-Each product area keeps its own `support/modules/<feature>/*.fixture.ts` for pages and workflows. `[support/fixtures/app.fixture.ts](support/fixtures/app.fixture.ts)` only merges those slices with `mergeTests`.
+Each product area keeps its own `support/modules/<feature>/*.fixture.ts` for pages and workflows. [support/fixtures/app.fixture.ts](support/fixtures/app.fixture.ts) only merges those slices with `mergeTests`.
 
 ```ts
 export const test = mergeTests(usersTest, shellTest, catalogTest, cartTest, checkoutTest);
@@ -335,7 +335,7 @@ Every test should make clear **which user the journey starts with**. That is sep
 
 **Mock app:** seeds `localStorage` `mock-store-membership` before load. **Real app:** same fixture slot; swap for cookies/API. Default `memberUser`; override with `test.use({ user: guestUser })` at file top.
 
-Spec: `[tests/users/handling-users.spec.ts](tests/users/handling-users.spec.ts)`.
+Spec: [tests/users/handling-users.spec.ts](tests/users/handling-users.spec.ts).
 
 ## 📏 Three sizes of test
 
@@ -344,14 +344,14 @@ Tier = **what fixtures the spec composes**, not step count. **Complex** specs ca
 
 | Tier    | Spec uses                     | Example spec                                                                     |
 | ------- | ----------------------------- | -------------------------------------------------------------------------------- |
-| Simple  | `xPage`                       | `[catalog-browse.spec.ts](tests/catalog/catalog-browse.spec.ts)` (list products) |
+| Simple  | `xPage`                       | [catalog-browse.spec.ts](tests/catalog/catalog-browse.spec.ts) (list products) |
 | Medium  | one `xWorkflow`               | same file (search + open product)                                                |
-| Complex | workflows from **2+ modules** | `[checkout.purchase.spec.ts](tests/checkout/checkout.purchase.spec.ts)`          |
+| Complex | workflows from **2+ modules** | [checkout.purchase.spec.ts](tests/checkout/checkout.purchase.spec.ts)          |
 
 
 ## 📖 `test.step` vs Cucumber
 
-Same complex journey with narrative steps — `[checkout.bdd.spec.ts](tests/checkout/checkout.bdd.spec.ts)`:
+Same complex journey with narrative steps — [checkout.bdd.spec.ts](tests/checkout/checkout.bdd.spec.ts):
 
 ```ts
 await test.step("Given a member is on the store home", async () => {
@@ -390,7 +390,7 @@ If business users actively maintain feature files, Cucumber may still be worth i
 
 ## ⚙️ Customizing the contract layer
 
-Enforcement is intentionally a **minor suggestion**, not a manifesto. Two ESLint rules in `[eslint.config.mjs](eslint.config.mjs)`:
+Enforcement is intentionally a **minor suggestion**, not a manifesto. Two ESLint rules in [eslint.config.mjs](eslint.config.mjs):
 
 1. **Only `BasePage` may be extended in `support/modules/`.** Implemented with `no-restricted-syntax`. ~6 lines. Buys the "no inheritance pyramids" promise.
 2. **Module isolation** via `eslint-plugin-boundaries`. Each module folder may import from `framework/`, `shared/`, `helpers/`, the `users` module, the shell module, or itself. Sibling feature modules are not importable. Adding a new product module is three lines of config.
@@ -451,7 +451,7 @@ Other scripts:
 
 ## 🔍 POM inspector
 
-The mock ships with a floating "POM inspector" widget (bottom-right): toggle outlines on/off, see live lists of visible pages, shell components, and widgets, and open **[README](/readme/)** (project docs rendered from this file — not a store page). Configuration lives in `[mock-app/shared/pom-outline-config.json](mock-app/shared/pom-outline-config.json)`.
+The mock ships with a floating "POM inspector" widget (bottom-right): toggle outlines on/off, see live lists of visible pages, shell components, and widgets, and open **[README](/readme/)** (project docs rendered from this file — not a store page). Configuration lives in [mock-app/shared/pom-outline-config.json](mock-app/shared/pom-outline-config.json).
 
 **Outline colors:** **blue** = shell (solid), **purple** = page (solid), **green** = widgets (dashed). Inspector panel uses the same three colors.
 
@@ -462,7 +462,7 @@ Two ways to turn it on:
 - **From the mock app**: `npm run start:mock:outlined` and click the FAB.
 - **From a test run**: `npm run test:outlined` (or `:outlined:headed` / `:outlined:ui`).
 
-The test-run toggle is **app initialization** — controlled by the `POM_VISUAL=1` environment variable read once in `[support/fixtures/app.fixture.ts](support/fixtures/app.fixture.ts)`. Specs never reference it. The root `test` extension adds one init script to each page when the env var is set; flip the var off and the surface disappears completely.
+The test-run toggle is **app initialization** — controlled by the `POM_VISUAL=1` environment variable read once in [support/fixtures/app.fixture.ts](support/fixtures/app.fixture.ts). Specs never reference it. The root `test` extension adds one init script to each page when the env var is set; flip the var off and the surface disappears completely.
 
 ```ts
 // support/fixtures/app.fixture.ts
@@ -483,14 +483,14 @@ Selectors and assertions don't change when outlines are on, so a CI screenshot j
 
 | Spec                                                                                   | Tier            | Focus                                                              |
 | -------------------------------------------------------------------------------------- | --------------- | ------------------------------------------------------------------ |
-| `[tests/catalog/catalog-browse.spec.ts](tests/catalog/catalog-browse.spec.ts)`         | Simple + Medium | Page fixture, catalog workflow, toast on add-to-cart               |
-| `[tests/catalog/membership-pricing.spec.ts](tests/catalog/membership-pricing.spec.ts)` | Complex         | Guest vs member prices (shell + catalog + cart)                    |
-| `[tests/catalog/catalog-browse.raw.spec.ts](tests/catalog/catalog-browse.raw.spec.ts)` | —               | Raw-locator counter-example                                        |
-| `[tests/cart/cart.spec.ts](tests/cart/cart.spec.ts)`                                   | Medium          | Cart manipulation (cart workflow + catalog workflow seeding)       |
-| `[tests/checkout/checkout.purchase.spec.ts](tests/checkout/checkout.purchase.spec.ts)` | Complex         | Cross-module purchase journey (4 workflows in one test)            |
-| `[tests/checkout/checkout.bdd.spec.ts](tests/checkout/checkout.bdd.spec.ts)`           | Complex         | Same journey rewritten with `test.step` Given/When/Then            |
-| `[tests/shell/navigation.spec.ts](tests/shell/navigation.spec.ts)`                     | Medium          | Shell-only: greeting, offers, modal, drawer                        |
-| `[tests/users/handling-users.spec.ts](tests/users/handling-users.spec.ts)`             | Medium          | Starting user (`user` fixture) vs mid-journey `membershipWorkflow` |
+| [tests/catalog/catalog-browse.spec.ts](tests/catalog/catalog-browse.spec.ts)         | Simple + Medium | Page fixture, catalog workflow, toast on add-to-cart               |
+| [tests/catalog/membership-pricing.spec.ts](tests/catalog/membership-pricing.spec.ts) | Complex         | Guest vs member prices (shell + catalog + cart)                    |
+| [tests/catalog/catalog-browse.raw.spec.ts](tests/catalog/catalog-browse.raw.spec.ts) | —               | Raw-locator counter-example                                        |
+| [tests/cart/cart.spec.ts](tests/cart/cart.spec.ts)                                   | Medium          | Cart manipulation (cart workflow + catalog workflow seeding)       |
+| [tests/checkout/checkout.purchase.spec.ts](tests/checkout/checkout.purchase.spec.ts) | Complex         | Cross-module purchase journey (4 workflows in one test)            |
+| [tests/checkout/checkout.bdd.spec.ts](tests/checkout/checkout.bdd.spec.ts)           | Complex         | Same journey rewritten with `test.step` Given/When/Then            |
+| [tests/shell/navigation.spec.ts](tests/shell/navigation.spec.ts)                     | Medium          | Shell-only: greeting, offers, modal, drawer                        |
+| [tests/users/handling-users.spec.ts](tests/users/handling-users.spec.ts)             | Medium          | Starting user (`user` fixture) vs mid-journey `membershipWorkflow` |
 
 
 ## 🤝 Tradeoffs

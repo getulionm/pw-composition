@@ -12,6 +12,22 @@
     });
   }
 
+  /** Repo-relative file links → GitHub blob URLs (mock app only serves mock-app/). */
+  function rewriteRepoFileLinks(container) {
+    const base = document.documentElement.dataset.repoBlobBase;
+    if (!base) return;
+
+    container.querySelectorAll("a[href]").forEach((anchor) => {
+      const href = anchor.getAttribute("href");
+      if (!href || href.startsWith("#") || href.startsWith("http") || href.startsWith("/")) {
+        return;
+      }
+      anchor.href = base + href.replace(/^\.\//, "");
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+    });
+  }
+
   fetch("./README.md", { cache: "no-cache" })
     .then((res) => {
       if (!res.ok) throw new Error(`HTTP ${res.status}`);
@@ -22,6 +38,7 @@
       root.innerHTML = marked.parse(md, { gfm: true, breaks: false });
 
       applyHeadingIds(root);
+      rewriteRepoFileLinks(root);
 
       root.querySelectorAll("pre > code.language-mermaid").forEach((code) => {
         const pre = document.createElement("pre");
